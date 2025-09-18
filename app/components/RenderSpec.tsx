@@ -7,7 +7,7 @@ interface RenderSpecProps {
   onError?: (error: Error, componentId: string) => void;
 }
 
-export const RenderSpec: React.FC<RenderSpecProps> = ({ 
+export const RenderSpec: React.FC<RenderSpecProps> = React.memo(({ 
   uiSpec, 
   onError 
 }) => {
@@ -77,7 +77,9 @@ export const RenderSpec: React.FC<RenderSpecProps> = ({
       </div>
     </div>
   );
-};
+});
+
+RenderSpec.displayName = 'RenderSpec';
 
 // Error boundary for individual components
 interface ComponentErrorBoundaryProps {

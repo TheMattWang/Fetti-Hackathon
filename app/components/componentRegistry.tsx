@@ -6,7 +6,7 @@ interface TableProps {
   component: TableComponent;
 }
 
-export const Table: React.FC<TableProps> = ({ component }) => {
+export const Table: React.FC<TableProps> = React.memo(({ component }) => {
   const { data, config } = component;
   const { columns, rows } = data;
   const { title, sortable = true, filterable = false, pagination = true, pageSize = 25 } = config || {};
@@ -138,14 +138,16 @@ export const Table: React.FC<TableProps> = ({ component }) => {
       )}
     </div>
   );
-};
+});
+
+Table.displayName = 'Table';
 
 // Chart Component
 interface ChartProps {
   component: ChartComponent;
 }
 
-export const Chart: React.FC<ChartProps> = ({ component }) => {
+export const Chart: React.FC<ChartProps> = React.memo(({ component }) => {
   const { data, config } = component;
   const { points } = data;
   const { title, kind, xAxisLabel, yAxisLabel, showLegend = true, colors = [] } = config;
@@ -306,14 +308,16 @@ export const Chart: React.FC<ChartProps> = ({ component }) => {
       )}
     </div>
   );
-};
+});
+
+Chart.displayName = 'Chart';
 
 // Map Component (simplified - would use react-leaflet in practice)
 interface MapProps {
   component: MapComponent;
 }
 
-export const Map: React.FC<MapProps> = ({ component }) => {
+export const Map: React.FC<MapProps> = React.memo(({ component }) => {
   const { data, config } = component;
   const { features } = data;
   const { title, center = [0, 0], zoom = 10, showPopups = true } = config || {};
@@ -351,7 +355,9 @@ export const Map: React.FC<MapProps> = ({ component }) => {
       </div>
     </div>
   );
-};
+});
+
+Map.displayName = 'Map';
 
 // Component Registry
 export const componentRegistry = {

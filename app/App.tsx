@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { RenderSpec, LoadingState, ErrorState } from './components/RenderSpec';
-import { useAgentStream } from './hooks/useAgentStream';
+import { useAgentWorker } from './hooks/useAgentWorker';
 import './App.css';
 
 interface AppProps {
@@ -8,11 +8,21 @@ interface AppProps {
 }
 
 export const App: React.FC<AppProps> = ({ 
-  agentEndpoint = 'http://localhost:8000/agent/stream' 
+  agentEndpoint = 'http://localhost:9000/api/agent/stream' 
 }) => {
   const [query, setQuery] = useState('');
   const [queryHistory, setQueryHistory] = useState<string[]>([]);
 
+  // Use Web Worker for safe agent communication (prevents UI crashes)
+  const agentStream = useAgentWorker({
+    endpoint: agentEndpoint,
+    reconnectInterval: 3000,
+    maxReconnectAttempts: 5,
+    heartbeatInterval: 30000,
+    timeout: 60000,
+  });
+
+  // Separate UI state from connection state to minimize re-renders
   const {
     uiSpec,
     isConnected,
@@ -25,13 +35,7 @@ export const App: React.FC<AppProps> = ({
     reconnect,
     clearErrors,
     disconnect,
-  } = useAgentStream({
-    endpoint: agentEndpoint,
-    reconnectInterval: 3000,
-    maxReconnectAttempts: 5,
-    heartbeatInterval: 30000,
-    timeout: 60000,
-  });
+  } = agentStream;
 
   const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
@@ -78,7 +82,7 @@ export const App: React.FC<AppProps> = ({
         <div className="connection-status">
           <div className={`status-indicator ${isConnected ? 'connected' : 'disconnected'}`} />
           <span className="status-text">
-            {isConnected ? 'Connected' : `Disconnected${connectionAttempts > 0 ? ` (${connectionAttempts} attempts)` : ''}`}
+            {isConnected ? 'Connected (Web Worker)' : `Disconnected${connectionAttempts > 0 ? ` (${connectionAttempts} attempts)` : ''}`}
           </span>
           {!isConnected && (
             <button onClick={reconnect} className="reconnect-button">
@@ -112,21 +116,24 @@ export const App: React.FC<AppProps> = ({
           </form>
 
           {/* Quick Queries */}
-          <div className="quick-queries">
-            <h3>Quick Queries:</h3>
-            <div className="quick-query-buttons">
-              {quickQueries.map((quickQuery, index) => (
-                <button
-                  key={index}
-                  onClick={() => handleQuickQuery(quickQuery)}
-                  className="quick-query-button"
-                  disabled={!isConnected || isLoading}
-                >
-                  {quickQuery}
-                </button>
-              ))}
+          {React.useMemo(() => (
+            <div className="quick-queries">
+              <h3>Quick Queries:</h3>
+              <div className="quick-query-buttons">
+                {quickQueries.map((quickQuery, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleQuickQuery(quickQuery)}
+                    className="quick-query-button"
+                    disabled={!isConnected || isLoading}
+                  >
+                    {quickQuery}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          ), [handleQuickQuery, isConnected, isLoading])}
+        
 
           {/* Query History */}
           {queryHistory.length > 0 && (
@@ -177,14 +184,16 @@ export const App: React.FC<AppProps> = ({
 
         {/* Results Display */}
         <section className="results-section">
-          <RenderSpec 
-            uiSpec={uiSpec} 
-            onError={handleComponentError}
-          />
+          {React.useMemo(() => (
+            <RenderSpec 
+              uiSpec={uiSpec} 
+              onError={handleComponentError}
+            />
+          ), [uiSpec, handleComponentError])}
         </section>
 
-        {/* Debug Info */}
-        {process.env.NODE_ENV === 'development' && (
+        {/* Debug Info - Disabled for now */}
+        {false && React.useMemo(() => (
           <section className="debug-section">
             <details>
               <summary>Debug Information</summary>
@@ -209,12 +218,12 @@ export const App: React.FC<AppProps> = ({
               </div>
             </details>
           </section>
-        )}
+        ), [isConnected, isLoading, uiSpec, lastMessage])}
       </main>
 
       <footer className="app-footer">
         <p>
-          Connected to: <code>{agentEndpoint}</code>
+          Connected to: <code>{agentEndpoint}</code> (via Web Worker)
         </p>
         <button onClick={disconnect} className="disconnect-button">
           Disconnect

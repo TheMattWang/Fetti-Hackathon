@@ -106,7 +106,9 @@ export function useAgentStream(options: UseAgentStreamOptions): UseAgentStreamRe
     }));
 
     try {
-      const eventSource = new EventSource(endpoint);
+      const eventSource = new EventSource(endpoint, {
+        withCredentials: true
+      });
       eventSourceRef.current = eventSource;
 
       // Connection opened
@@ -192,12 +194,17 @@ export function useAgentStream(options: UseAgentStreamOptions): UseAgentStreamRe
           };
         });
 
-        // Attempt reconnection if under limit
-        if (state.connectionAttempts < maxReconnectAttempts) {
-          reconnectTimeoutRef.current = setTimeout(() => {
-            connect();
-          }, reconnectInterval);
-        }
+        // Attempt reconnection if under limit  
+        setState(prev => {
+          if (prev.connectionAttempts < maxReconnectAttempts) {
+            const delay = Math.min(reconnectInterval * Math.pow(2, prev.connectionAttempts), 30000); // Exponential backoff, max 30s
+            console.log(`Scheduling reconnection in ${delay}ms (attempt ${prev.connectionAttempts + 1}/${maxReconnectAttempts})`);
+            reconnectTimeoutRef.current = setTimeout(() => {
+              connect();
+            }, delay);
+          }
+          return prev;
+        });
       };
 
     } catch (error) {
@@ -208,7 +215,7 @@ export function useAgentStream(options: UseAgentStreamOptions): UseAgentStreamRe
         error: `Failed to connect: ${error instanceof Error ? error.message : 'Unknown error'}`,
       }));
     }
-  }, [endpoint, maxReconnectAttempts, reconnectInterval, startHeartbeat, timeout, state.connectionAttempts, disconnect]);
+  }, [endpoint, maxReconnectAttempts, reconnectInterval, startHeartbeat, timeout, disconnect]);
 
   const sendMessage = useCallback((message: string) => {
     if (!state.isConnected) {
@@ -221,7 +228,7 @@ export function useAgentStream(options: UseAgentStreamOptions): UseAgentStreamRe
     
     setState(prev => ({ ...prev, isLoading: true }));
 
-    fetch(endpoint.replace('/stream', '/query'), {
+    fetch(endpoint.replace('/api/agent/stream', '/api/agent/query'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -267,14 +274,24 @@ export function useAgentStream(options: UseAgentStreamOptions): UseAgentStreamRe
     return () => {
       disconnect();
     };
-  }, [connect, disconnect]);
+  }, []); // Empty dependency array - only run on mount/unmount
 
-  // Cleanup on endpoint change
+  // Handle endpoint changes
+  useEffect(() => {
+    // Reconnect when endpoint changes (but not on initial mount)
+    const isInitialMount = !eventSourceRef.current;
+    if (!isInitialMount) {
+      disconnect();
+      connect();
+    }
+  }, [endpoint]);
+
+  // Cleanup timeouts
   useEffect(() => {
     return () => {
       clearTimeouts();
     };
-  }, [endpoint, clearTimeouts]);
+  }, [clearTimeouts]);
 
   return {
     ...state,

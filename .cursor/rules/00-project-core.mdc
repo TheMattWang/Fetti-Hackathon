@@ -1,5 +1,34 @@
 ---
-description:
+name: Project Core
+description: Repo structure, coding standards, and general guidance.
 globs:
-alwaysApply: false
+  - "**/*"
+alwaysApply: true
 ---
+
+## Goals
+- Build a minimal, safe **server-driven UI** for a SQL agent.
+- Stream **UI patches**: table → chart → map; then optional forecast/cluster results.
+- Keep the DB **read-only** in MVP.
+
+## Conventions
+- TypeScript strict mode ON; ESLint + Prettier.
+- File/folder names: `kebab-case`; React components `PascalCase.tsx`.
+- Env vars via `.env` (never hardcode secrets).
+
+## Repo layout (generate if missing)
+- `agent/`     : LangGraph graph + nodes (organized: core/, utils/, config/)
+- `server/`    : FastAPI server with `/api/agent/stream` (SSE) and `/api/agent/query` (POST)
+- `app/`       : React frontend with `componentRegistry.tsx`, `RenderSpec.tsx`, `useAgentStream.ts`
+- `data/`      : SQLite database and analysis notebooks
+- `analytics/` : small libs for ETS/kmeans if used in-node
+
+## DB schema (MVP - known tables)
+- `trips(trip_id, booking_user_id, started_at, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng, pickup_address, dropoff_address)`
+- `trip_users(trip_id, user_id, role?)`
+- `users(user_id)`
+
+## Don’ts
+- No DDL/DML in MVP (no CREATE/DROP/ALTER/INSERT/UPDATE/DELETE).
+- No `eval`, no inline `<script>`, no remote code.
+- No `SELECT *` on large tables; always list columns.
