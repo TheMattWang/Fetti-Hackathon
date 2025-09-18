@@ -1,0 +1,35 @@
+---
+name: SQL Agent Rules
+description: Safe SQL generation + data shaping for UI.
+globs:
+  - agent/**
+  - server/**
+alwaysApply: false
+---
+
+## Behavior
+- SQL is **read-only** and **parameterized**. Bind values; never string-concat.
+- Add `LIMIT` to base selects (default 1000) unless aggregating.
+- Prefer aggregates/window functions for trends (MA7/MA30).
+- Time filters: `started_at BETWEEN :after AND :before`.
+
+## Known tables/columns (help LLM pick columns)
+- trips: trip_id, booking_user_id, started_at, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng, pickup_address, dropoff_address
+- trip_users: trip_id, user_id, role
+- users: user_id
+
+## Patterns
+
+### Daily trips (with 7-day moving average)
+```sql
+WITH d AS (
+  SELECT date(started_at) AS d, COUNT(*) AS trips
+  FROM trips
+  WHERE started_at >= :after AND started_at < :before
+  GROUP BY 1
+)
+SELECT d,
+       trips,
+       AVG(trips) OVER (ORDER BY d ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS trips_ma7
+FROM d
+ORDER BY d;
