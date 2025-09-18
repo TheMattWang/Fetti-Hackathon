@@ -1,0 +1,20 @@
+---
+name: Generative UI Rules
+description: Server-driven UI with a whitelisted component registry and streamed patch protocol.
+globs:
+  - app/**
+alwaysApply: false
+---
+
+## Components (whitelist only)
+- `Table`
+- `Chart` (kinds: `line`, `bar`, `scatter`)
+- `Map` (GeoJSON via react-leaflet)
+
+> Unknown component types must be ignored (log a warning).
+
+## Patch protocol (what the backend may emit)
+Only these ops are allowed:
+```json
+{"op":"append","path":"/children","value":<Component>}
+{"op":"set","path":"/children/<index>","value":<Component>}

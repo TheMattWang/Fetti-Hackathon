@@ -1,0 +1,29 @@
+---
+name: Analytics (Forecast & Clustering)
+description: Agent behaviors for future trends (forecasting) and user segmentation (clustering).
+globs:
+  - agent/**
+  - analytics/**
+alwaysApply: false
+---
+
+## Forecasting (future trends)
+Inputs:
+- Daily time series from SQL: `{ d: string(ISO date), trips: number }`
+- Optional moving average: `trips_ma7`
+
+Method:
+- Start simple: moving average or ETS in a lightweight node.
+- Later swap to Prophet/StatsForecast behind the same interface.
+
+Output (augment an existing Chart or create a new one):
+```ts
+{
+  type: "Chart",
+  id: string,
+  kind: "line",
+  x: "d",
+  ys: ["trips", "trips_ma7", "forecast"],
+  data: Array<{ d: string; trips?: number; trips_ma7?: number; forecast?: number }>,
+  seriesStyles: { forecast: { dashed: true } }
+}

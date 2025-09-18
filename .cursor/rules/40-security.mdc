@@ -1,0 +1,33 @@
+---
+name: Security & Safety
+description: Guardrails for codegen, data access, streaming, and UI rendering.
+globs:
+  - "**/*"
+alwaysApply: true
+---
+
+## Data & SQL
+- Read-only DB access in MVP; enforce at app layer even in dev.
+- Parameterize every query; no string concatenation.
+- Reject unbounded base selects; require `LIMIT` unless aggregating.
+- Rate-limit long-running actions; add timeouts and cancelation.
+
+## UI & Patches
+- Only render **whitelisted components** (Table/Chart/Map).
+- Validate every patch (Zod) before applying; drop & log on failure.
+- Cap payload sizes: ≤ 200 table rows / patch; ≤ 1000 chart points / patch; ≤ 5000 map points / patch.
+- Sanitize any markdown (if introduced); no arbitrary HTML or scripts.
+
+## Secrets & Logging
+- Secrets via env only; never commit `.env`.
+- Redact sensitive values in logs; avoid logging full result sets.
+- Include request IDs and patch counts for observability.
+
+## Network & Streaming
+- SSE/WebSocket must heartbeat; disconnect idle clients.
+- CORS restricted to known app origins.
+- Backpressure: queue at most N pending patches; coalesce sets when possible.
+
+## Files & Builds
+- No eval or dynamic `new Function`.
+- Dependency updates must not widen component surface without updating these rules.
