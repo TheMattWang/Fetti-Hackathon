@@ -1,6 +1,6 @@
 from langchain_community.agent_toolkits import SQLDatabaseToolkit
 from .database import DatabaseManager
-from .geo_intelligence import analyze_austin_location, get_austin_search_suggestions
+from .geo_intelligence import analyze_austin_location, get_austin_search_suggestions, analyze_coordinate_location, suggest_visualization_type
 from .date_analysis import analyze_date_patterns, get_day_of_week_sql_patterns
 from .date_range_analysis import analyze_database_date_ranges
 from langchain.tools import tool
@@ -34,6 +34,8 @@ def get_sql_tools(db_manager: DatabaseManager, llm):
     context_tools = [
         analyze_austin_location,
         get_austin_search_suggestions,
+        analyze_coordinate_location,
+        suggest_visualization_type,
         analyze_date_patterns,
         get_day_of_week_sql_patterns,
         analyze_database_date_ranges_tool
@@ -94,6 +96,8 @@ PREFER using the views (trips, users, trip_users) over the raw_ tables when poss
 CONTEXT TOOLS (Use these to gather information for building better SQL queries):
 - analyze_austin_location: Get location patterns and SQL suggestions for Austin locations
 - get_austin_search_suggestions: Get SQL patterns for specific location names
+- analyze_coordinate_location: Analyze lat/lng coordinates to identify Austin locations
+- suggest_visualization_type: Recommend best visualization (map, chart, table) based on query and data
 - analyze_date_patterns: Get date/time analysis and SQL patterns for date queries
 - get_day_of_week_sql_patterns: Get SQL patterns for day-of-week analysis
 - analyze_database_date_ranges_tool: Get current date context to interpret temporal queries naturally
@@ -105,13 +109,16 @@ EXECUTION TOOLS (Use these to run actual SQL queries):
 
 WORKFLOW:
 1. **Gather Context**: Use context tools to understand locations, dates, or database structure
-2. **Build Query**: Use the context information to construct an appropriate SQL query
-3. **Execute Query**: Use sql_db_query to run the query and get results
-4. **Present Results**: Format the results in a clear, conversational way
+2. **Choose Visualization**: Use suggest_visualization_type to determine the best way to present results
+3. **Build Query**: Use the context information to construct an appropriate SQL query
+4. **Execute Query**: Use sql_db_query to run the query and get results
+5. **Present Results**: Format the results with the recommended visualization type
 
 EXAMPLES:
-- For "Moody Center" queries: Use analyze_austin_location → get patterns → build SQL → execute
-- For date queries: Use analyze_database_date_ranges_tool → get current date context → analyze_date_patterns → build query → execute
+- For "Moody Center" queries: Use analyze_austin_location → suggest_visualization_type → build SQL → execute → present with recommended visualization
+- For location queries: Use suggest_visualization_type (with has_coordinates=true) → likely recommends MAP → build SQL with coordinates → execute → present as map
+- For "how many" queries: Use suggest_visualization_type → likely recommends BAR_CHART → build SQL → execute → present as chart
+- For date queries: Use analyze_database_date_ranges_tool → suggest_visualization_type → analyze_date_patterns → build query → execute → present with recommended visualization
 - For schema questions: Use sql_db_schema → understand structure → build query → execute
 - For "last month" queries: Use analyze_database_date_ranges_tool → interpret as "recently" using available data period → build appropriate query → execute
 
@@ -129,6 +136,15 @@ RULES:
 - Be confident and provide specific answers rather than asking for clarification
 - AGE DATA IS AVAILABLE: The users view contains age information for many users - use it when asked about user demographics
 - GROUP SIZE DATA IS AVAILABLE: The trips view contains total_passengers column - use it when asked about group size, number of riders, passengers per trip, etc.
+
+VISUALIZATION INTELLIGENCE:
+- ALWAYS use suggest_visualization_type to determine the best way to present results
+- Include visualization recommendation in your response (e.g., "This data would be best shown as a map" or "A bar chart would clearly show these comparisons")
+- For location-based queries with coordinates, recommend MAP visualization
+- For temporal queries, recommend LINE_CHART or BAR_CHART
+- For categorical comparisons, recommend BAR_CHART
+- For distributions, recommend HISTOGRAM
+- Always explain WHY you're recommending a particular visualization type
 
 {view_info}
 """.format(

@@ -18,7 +18,7 @@ export default function Home() {
 
   // Use the agent streaming hook
   const agentStream = useAgentWorker({
-    endpoint: 'http://localhost:9000/api/agent/stream',
+    endpoint: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9000'}/api/agent/stream`,
     reconnectInterval: 3000,
     maxReconnectAttempts: 5,
     heartbeatInterval: 30000,

@@ -96,9 +96,30 @@ def analyze_date_ranges(db_manager: DatabaseManager) -> DateRangeInfo:
         
         # Create human-readable summary
         if earliest and latest:
-            date_summary = f"Database contains {total} trips from {earliest} to {latest}. Available dates: {', '.join(available_dates[:5])}"
-            if len(available_dates) > 5:
-                date_summary += f" and {len(available_dates) - 5} more dates."
+            # Parse the dates to provide better context
+            try:
+                from datetime import datetime
+                earliest_parsed = datetime.strptime(earliest.split()[0], "%m/%d/%y")
+                latest_parsed = datetime.strptime(latest.split()[0], "%m/%d/%y")
+                
+                # Calculate the actual date range
+                days_span = (latest_parsed - earliest_parsed).days + 1
+                date_summary = f"Database contains {total} trips from {earliest} to {latest} ({days_span} days total). Available dates: {', '.join(available_dates[:5])}"
+                if len(available_dates) > 5:
+                    date_summary += f" and {len(available_dates) - 5} more dates."
+                
+                # Add specific guidance about partial months
+                if earliest_parsed.month == latest_parsed.month:
+                    month_name = earliest_parsed.strftime("%B")
+                    date_summary += f" NOTE: Data covers only {earliest_parsed.day}-{latest_parsed.day} of {month_name} {earliest_parsed.year}."
+                elif earliest_parsed.month != latest_parsed.month:
+                    earliest_month = earliest_parsed.strftime("%B")
+                    latest_month = latest_parsed.strftime("%B")
+                    date_summary += f" NOTE: Data spans from {earliest_month} {earliest_parsed.day} to {latest_month} {latest_parsed.day}, {earliest_parsed.year}."
+            except:
+                date_summary = f"Database contains {total} trips from {earliest} to {latest}. Available dates: {', '.join(available_dates[:5])}"
+                if len(available_dates) > 5:
+                    date_summary += f" and {len(available_dates) - 5} more dates."
         else:
             date_summary = f"Database contains {total} trips with date information."
         
@@ -214,15 +235,21 @@ def analyze_database_date_ranges(db_manager: DatabaseManager) -> str:
 📊 Database Status: Contains {date_info.total_trips} trips with recent data
 
 💡 INTELLIGENT TEMPORAL QUERY GUIDANCE:
-- When users ask about "last month", they likely mean "recently" or "in the available data period"
 - The available data period is {earliest_date} to {latest_date}
 - IMPORTANT: Database dates are stored as TEXT in format "M/D/YY H:MM" (e.g., "9/5/25 18:06")
 - For temporal queries, use the available date range rather than strict calendar months
 - Use LIKE patterns for date filtering: started_at LIKE '9/%/25%' for September 2025
 - Be confident in your date interpretations and provide specific answers
 
-🎯 RECOMMENDATION: For "last month" queries, interpret as "recently" and use the available data period
-({earliest_date} to {latest_date}) with proper text date format to provide specific answers.
+🎯 CRITICAL: When users ask about "September 2025" or "last month", clarify that the database only contains data from {earliest_date} to {latest_date}. 
+- If they ask about "September 2025", explain this covers only September 1-8, 2025 (partial month)
+- If they ask about "last month", explain the available data period
+- Always specify the exact date range when providing results
+
+📋 EXAMPLE RESPONSES:
+- "September 2025 trips": "There were X trips from the available September data period"
+- "Last month": "Based on available data from {earliest_date} to {latest_date}, there were X trips"
+- "Moody Center last month": "There were X trips to Moody Center in the available data period"
 """
         
         logger.info(f"Current date context provided: {current_date}, last month: {last_month}")

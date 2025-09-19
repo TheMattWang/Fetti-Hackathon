@@ -14,9 +14,10 @@ interface SmartVizSelectorProps {
   plan: VizPlan;
   rows: any[];
   onVizChange: (newPlan: VizPlan) => void;
+  agentRecommendation?: string;
 }
 
-export default function SmartVizSelector({ plan, rows, onVizChange }: SmartVizSelectorProps) {
+export default function SmartVizSelector({ plan, rows, onVizChange, agentRecommendation }: SmartVizSelectorProps) {
   const { lat, lon } = getLatLonFields(plan.fields);
   const categoricalFields = getCategoricalFields(plan.fields);
   const numericFields = getNumericFields(plan.fields);
@@ -175,25 +176,67 @@ export default function SmartVizSelector({ plan, rows, onVizChange }: SmartVizSe
 
   const suggestions = getSuggestedVisualizations();
 
+  // Check if current visualization matches agent recommendation
+  const isAgentRecommended = (suggestion: any) => {
+    if (!agentRecommendation) return false;
+    const recLower = agentRecommendation.toLowerCase();
+    const suggestionType = suggestion.chartType || suggestion.type;
+    
+    if (recLower.includes('map') && suggestionType === 'scatter' && suggestion.intent === 'map') return true;
+    if (recLower.includes('line') && suggestionType === 'line') return true;
+    if (recLower.includes('bar') && suggestionType === 'bar') return true;
+    if (recLower.includes('histogram') && suggestionType === 'hist') return true;
+    if (recLower.includes('scatter') && suggestionType === 'scatter') return true;
+    if (recLower.includes('pie') && suggestionType === 'pie') return true;
+    if (recLower.includes('area') && suggestionType === 'area') return true;
+    if (recLower.includes('box') && suggestionType === 'box') return true;
+    if (recLower.includes('funnel') && suggestionType === 'funnel') return true;
+    
+    return false;
+  };
+
   return (
     <div className="mb-6">
-      <h3 className="text-lg font-semibold mb-3">Visualization Options</h3>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-lg font-semibold">Visualization Options</h3>
+        {agentRecommendation && (
+          <div className="flex items-center gap-2 text-sm text-blue-600">
+            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+            <span>AI Recommended</span>
+          </div>
+        )}
+      </div>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-        {suggestions.map((suggestion, index) => (
-          <button
-            key={index}
-            onClick={() => handleVizChange(suggestion)}
-            className={`p-3 rounded-lg border text-left transition-colors ${
-              plan.chart.type === suggestion.chartType && plan.intent === suggestion.intent
-                ? 'border-blue-500 bg-blue-50'
-                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-            }`}
-          >
-            <div className="text-2xl mb-1">{suggestion.icon}</div>
-            <div className="font-medium text-sm">{suggestion.title}</div>
-            <div className="text-xs text-gray-600">{suggestion.description}</div>
-          </button>
-        ))}
+        {suggestions.map((suggestion, index) => {
+          const isRecommended = isAgentRecommended(suggestion);
+          const isSelected = plan.chart.type === suggestion.chartType && plan.intent === suggestion.intent;
+          
+          return (
+            <button
+              key={index}
+              onClick={() => handleVizChange(suggestion)}
+              className={`p-3 rounded-lg border text-left transition-colors relative ${
+                isSelected
+                  ? 'border-blue-500 bg-blue-50'
+                  : isRecommended
+                  ? 'border-green-300 bg-green-50 hover:border-green-400'
+                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              {isRecommended && (
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full flex items-center justify-center">
+                  <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                </div>
+              )}
+              <div className="text-2xl mb-1">{suggestion.icon}</div>
+              <div className="font-medium text-sm">{suggestion.title}</div>
+              <div className="text-xs text-gray-600">{suggestion.description}</div>
+              {isRecommended && (
+                <div className="text-xs text-green-600 font-medium mt-1">✨ AI Recommended</div>
+              )}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

@@ -20,7 +20,7 @@ export default function Home() {
 
   // Use the agent streaming hook
   const agentStream = useAgentWorker({
-    endpoint: 'http://localhost:9000/api/agent/stream',
+    endpoint: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9000'}/api/agent/stream`,
     reconnectInterval: 3000,
     maxReconnectAttempts: 5,
     heartbeatInterval: 30000,
@@ -46,6 +46,79 @@ export default function Home() {
     reconnect,
     clearErrors,
   } = agentStream;
+
+  // Function to extract visualization recommendation from agent response
+  const extractVisualizationRecommendation = (response: string): string => {
+    const responseLower = response.toLowerCase();
+    
+    // Check for specific visualization recommendations
+    if (responseLower.includes('map') && (responseLower.includes('location') || responseLower.includes('coordinates'))) {
+      return 'map';
+    } else if (responseLower.includes('line chart') || responseLower.includes('line graph')) {
+      return 'line';
+    } else if (responseLower.includes('bar chart') || responseLower.includes('bar graph')) {
+      return 'bar';
+    } else if (responseLower.includes('histogram')) {
+      return 'histogram';
+    } else if (responseLower.includes('scatter plot') || responseLower.includes('scatter chart')) {
+      return 'scatter';
+    } else if (responseLower.includes('pie chart')) {
+      return 'pie';
+    } else if (responseLower.includes('area chart')) {
+      return 'area';
+    } else if (responseLower.includes('box plot')) {
+      return 'box';
+    } else if (responseLower.includes('funnel')) {
+      return 'funnel';
+    }
+    
+    // Default fallback based on data characteristics
+    return 'bar';
+  };
+
+  // Function to determine chart type based on data and query
+  const determineChartType = (tableData: any, query: string, agentResponse: string): string => {
+    // First, try to extract from agent response
+    const recommendedType = extractVisualizationRecommendation(agentResponse);
+    if (recommendedType !== 'bar') {
+      return recommendedType;
+    }
+
+    // Fallback to smart detection based on data and query
+    const queryLower = query.toLowerCase();
+    const hasCoordinates = tableData.columns.some((col: any) => 
+      col.key.toLowerCase().includes('lat') || col.key.toLowerCase().includes('lon')
+    );
+    const hasTimeData = tableData.columns.some((col: any) => 
+      col.key.toLowerCase().includes('date') || col.key.toLowerCase().includes('time') || col.key.toLowerCase().includes('hour')
+    );
+    const hasLocationData = tableData.columns.some((col: any) => 
+      col.key.toLowerCase().includes('address') || col.key.toLowerCase().includes('location')
+    );
+
+    // Location-based queries with coordinates
+    if ((queryLower.includes('location') || queryLower.includes('pickup') || queryLower.includes('dropoff')) && hasCoordinates) {
+      return 'map';
+    }
+    
+    // Time-based queries
+    if (queryLower.includes('hour') || queryLower.includes('time') || queryLower.includes('trend') || hasTimeData) {
+      return 'line';
+    }
+    
+    // Distribution queries
+    if (queryLower.includes('distribution') || queryLower.includes('age') || queryLower.includes('group size')) {
+      return 'histogram';
+    }
+    
+    // Location queries without coordinates
+    if (hasLocationData && !hasCoordinates) {
+      return 'bar';
+    }
+    
+    // Default to bar chart for comparisons
+    return 'bar';
+  };
 
   // Handle agent responses
   useEffect(() => {
@@ -89,17 +162,41 @@ export default function Home() {
             };
           });
 
+          // Determine the best chart type based on agent recommendation and data
+          const chartType = determineChartType(tableData, query, agentResponse);
+          console.log('Determined chart type:', chartType);
+
+          // Set appropriate x and y fields based on chart type
+          let xField = tableData.columns[0]?.key || "column1";
+          let yField = tableData.columns[1]?.key || "column2";
+          
+          if (chartType === 'map' && fields.some(f => f.type === 'lat') && fields.some(f => f.type === 'lon')) {
+            // For maps, use lat/lon fields
+            const latField = fields.find(f => f.type === 'lat');
+            const lonField = fields.find(f => f.type === 'lon');
+            if (latField && lonField) {
+              xField = lonField.name;
+              yField = latField.name;
+            }
+          } else if (chartType === 'line' && fields.some(f => f.type === 'time')) {
+            // For line charts, use time field as x-axis
+            const timeField = fields.find(f => f.type === 'time');
+            if (timeField) {
+              xField = timeField.name;
+            }
+          }
+
           const vizPayload: VizPayload = {
             plan: {
-              intent: "describe",
+              intent: chartType === 'map' ? "map" : "describe",
               question: query,
               dataset: "agent_result",
               sql: "SELECT * FROM agent_result",
               fields,
               chart: {
-                type: "bar",
-                x: tableData.columns[0]?.key || "column1",
-                y: tableData.columns[1]?.key || "column2",
+                type: chartType as any,
+                x: xField,
+                y: yField,
                 tooltip: tableData.columns.map((col: any) => col.key)
               },
               narrative: agentResponse,
@@ -254,6 +351,23 @@ export default function Home() {
               <div className="p-6 bg-white rounded-lg shadow-sm">
                 <h2 className="text-lg font-semibold text-gray-900 mb-2">Insight</h2>
                 <p className="text-gray-700">{data.plan.narrative}</p>
+                
+                {/* Visualization Recommendation */}
+                {data.plan.narrative.toLowerCase().includes('visualized') || 
+                 data.plan.narrative.toLowerCase().includes('chart') || 
+                 data.plan.narrative.toLowerCase().includes('map') ? (
+                  <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      <span className="text-sm font-medium text-blue-800">
+                        AI Recommendation: {data.plan.chart.type.charAt(0).toUpperCase() + data.plan.chart.type.slice(1)} Chart
+                      </span>
+                    </div>
+                    <p className="text-xs text-blue-600 mt-1">
+                      The agent has automatically selected the best visualization type for your data
+                    </p>
+                  </div>
+                ) : null}
               </div>
             )}
 
@@ -292,6 +406,7 @@ export default function Home() {
               plan={data.plan} 
               rows={data.rows} 
               onVizChange={handleVizChange}
+              agentRecommendation={data.plan.narrative || undefined}
             />
 
             {/* Visualization */}
