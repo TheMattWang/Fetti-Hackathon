@@ -21,7 +21,7 @@ const MessageTypes = {
 };
 
 // Send message to main thread
-function postMessage(type, data = {}) {
+function sendToMain(type, data = {}) {
   self.postMessage({
     type,
     data,
@@ -32,7 +32,7 @@ function postMessage(type, data = {}) {
 // Logging function
 function log(message, level = 'info') {
   console.log(`[AgentWorker] ${message}`);
-  postMessage(MessageTypes.LOG, { message, level });
+  sendToMain(MessageTypes.LOG, { message, level });
 }
 
 // Cleanup function
@@ -70,7 +70,7 @@ function startHeartbeat() {
 // Handle connection errors
 function handleConnectionError() {
   isConnected = false;
-  postMessage(MessageTypes.CONNECTION_STATUS, { 
+  sendToMain(MessageTypes.CONNECTION_STATUS, { 
     isConnected: false, 
     connectionAttempts,
     error: 'Connection lost'
@@ -90,7 +90,7 @@ function handleConnectionError() {
     }, delay);
   } else {
     log('Max reconnection attempts reached', 'error');
-    postMessage(MessageTypes.ERROR, { 
+    sendToMain(MessageTypes.ERROR, { 
       message: 'Failed to connect after maximum attempts' 
     });
   }
@@ -109,7 +109,7 @@ function connect() {
   connectionAttempts++;
   log(`Connecting to ${endpoint} (attempt ${connectionAttempts})`);
   
-  postMessage(MessageTypes.CONNECTION_STATUS, { 
+  sendToMain(MessageTypes.CONNECTION_STATUS, { 
     isConnected: false, 
     isLoading: true,
     connectionAttempts
@@ -125,7 +125,8 @@ function connect() {
       isConnected = true;
       connectionAttempts = 0;
       
-      postMessage(MessageTypes.CONNECTION_STATUS, { 
+      log('Sending CONNECTION_STATUS: connected');
+      sendToMain(MessageTypes.CONNECTION_STATUS, { 
         isConnected: true, 
         isLoading: false,
         connectionAttempts: 0
@@ -140,14 +141,14 @@ function connect() {
         log(`Received message: ${event.data.substring(0, 100)}...`);
         
         // Forward agent response to main thread
-        postMessage(MessageTypes.AGENT_RESPONSE, {
+        sendToMain(MessageTypes.AGENT_RESPONSE, {
           ...data,
           rawMessage: event.data
         });
         
       } catch (error) {
         log(`Error parsing message: ${error.message}`, 'error');
-        postMessage(MessageTypes.ERROR, { 
+        sendToMain(MessageTypes.ERROR, { 
           message: `Failed to parse agent message: ${error.message}` 
         });
       }
@@ -160,11 +161,11 @@ function connect() {
     
   } catch (error) {
     log(`Failed to create EventSource: ${error.message}`, 'error');
-    postMessage(MessageTypes.ERROR, { 
+    sendToMain(MessageTypes.ERROR, { 
       message: `Connection failed: ${error.message}` 
     });
     
-    postMessage(MessageTypes.CONNECTION_STATUS, { 
+    sendToMain(MessageTypes.CONNECTION_STATUS, { 
       isConnected: false, 
       isLoading: false,
       connectionAttempts
@@ -173,10 +174,10 @@ function connect() {
 }
 
 // Send query to agent
-async function sendQuery(message, requestId) {
+async function sendQuery(message, requestId, sessionId) {
   if (!isConnected) {
     log('Cannot send query - not connected', 'warn');
-    postMessage(MessageTypes.ERROR, { 
+    sendToMain(MessageTypes.ERROR, { 
       message: 'Not connected to agent' 
     });
     return;
@@ -185,7 +186,7 @@ async function sendQuery(message, requestId) {
   const queryEndpoint = endpoint.replace('/api/agent/stream', '/api/agent/query');
   
   try {
-    log(`Sending query: ${message}`);
+    log(`Sending query: ${message} (Session: ${sessionId})`);
     
     const response = await fetch(queryEndpoint, {
       method: 'POST',
@@ -194,7 +195,8 @@ async function sendQuery(message, requestId) {
       },
       body: JSON.stringify({
         message,
-        requestId
+        requestId,
+        sessionId
       }),
     });
     
@@ -207,7 +209,7 @@ async function sendQuery(message, requestId) {
     
   } catch (error) {
     log(`Error sending query: ${error.message}`, 'error');
-    postMessage(MessageTypes.ERROR, { 
+    sendToMain(MessageTypes.ERROR, { 
       message: `Failed to send query: ${error.message}` 
     });
   }
@@ -216,6 +218,7 @@ async function sendQuery(message, requestId) {
 // Handle messages from main thread
 self.onmessage = function(event) {
   const { type, data } = event.data;
+  log(`Worker received message: ${type}`);
   
   switch (type) {
     case MessageTypes.CONNECT:
@@ -229,7 +232,7 @@ self.onmessage = function(event) {
     case MessageTypes.DISCONNECT:
       log('Received disconnect request');
       cleanup();
-      postMessage(MessageTypes.CONNECTION_STATUS, { 
+      sendToMain(MessageTypes.CONNECTION_STATUS, { 
         isConnected: false, 
         isLoading: false,
         connectionAttempts: 0
@@ -237,7 +240,7 @@ self.onmessage = function(event) {
       break;
       
     case MessageTypes.SEND_QUERY:
-      sendQuery(data.message, data.requestId);
+      sendQuery(data.message, data.requestId, data.sessionId);
       break;
       
     default:
@@ -248,7 +251,7 @@ self.onmessage = function(event) {
 // Handle worker errors
 self.onerror = function(error) {
   log(`Worker error: ${error.message}`, 'error');
-  postMessage(MessageTypes.ERROR, { 
+  sendToMain(MessageTypes.ERROR, { 
     message: `Worker error: ${error.message}` 
   });
 };

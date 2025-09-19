@@ -59,6 +59,7 @@ export function useAgentWorker(options: UseAgentWorkerOptions): UseAgentWorkerRe
 
   const workerRef = useRef<Worker | null>(null);
   const mountedRef = useRef(true);
+  const sessionIdRef = useRef<string>(generateRequestId()); // Generate persistent session ID
 
   // Initialize worker
   const initializeWorker = useCallback(() => {
@@ -67,6 +68,7 @@ export function useAgentWorker(options: UseAgentWorkerOptions): UseAgentWorkerRe
     }
 
     try {
+      console.log('Initializing Web Worker for agent communication...');
       // Create worker from public directory
       workerRef.current = new Worker('/agent-worker.js');
       
@@ -78,6 +80,7 @@ export function useAgentWorker(options: UseAgentWorkerOptions): UseAgentWorkerRe
         
         switch (type) {
           case MessageTypes.CONNECTION_STATUS:
+            console.log('Received CONNECTION_STATUS from worker:', data);
             setState(prev => ({
               ...prev,
               isConnected: data.isConnected || false,
@@ -167,23 +170,44 @@ export function useAgentWorker(options: UseAgentWorkerOptions): UseAgentWorkerRe
   // Connect to agent
   const connect = useCallback(() => {
     if (!workerRef.current) {
+      console.log('Worker not initialized, initializing now...');
       if (!initializeWorker()) {
+        console.error('Failed to initialize worker');
         return;
       }
-    }
-
-    workerRef.current?.postMessage({
-      type: MessageTypes.CONNECT,
-      data: {
-        endpoint,
-        config: {
-          reconnectInterval,
-          maxReconnectAttempts,
-          heartbeatInterval,
-          timeout,
+      // Wait a bit for worker to initialize before sending connect message
+      setTimeout(() => {
+        if (workerRef.current && mountedRef.current) {
+          console.log('Sending CONNECT message to worker with endpoint:', endpoint);
+          workerRef.current.postMessage({
+            type: MessageTypes.CONNECT,
+            data: {
+              endpoint,
+              config: {
+                reconnectInterval,
+                maxReconnectAttempts,
+                heartbeatInterval,
+                timeout,
+              }
+            }
+          });
         }
-      }
-    });
+      }, 100);
+    } else {
+      console.log('Sending CONNECT message to worker with endpoint:', endpoint);
+      workerRef.current.postMessage({
+        type: MessageTypes.CONNECT,
+        data: {
+          endpoint,
+          config: {
+            reconnectInterval,
+            maxReconnectAttempts,
+            heartbeatInterval,
+            timeout,
+          }
+        }
+      });
+    }
   }, [endpoint, reconnectInterval, maxReconnectAttempts, heartbeatInterval, timeout, initializeWorker]);
 
   // Send message to agent
@@ -202,6 +226,7 @@ export function useAgentWorker(options: UseAgentWorkerOptions): UseAgentWorkerRe
       data: {
         message,
         requestId,
+        sessionId: sessionIdRef.current,
       }
     });
   }, []);
@@ -227,10 +252,12 @@ export function useAgentWorker(options: UseAgentWorkerOptions): UseAgentWorkerRe
 
   // Initialize on mount
   useEffect(() => {
+    console.log('useAgentWorker: Initial mount, initializing worker and connecting...');
     initializeWorker();
     connect();
     
     return () => {
+      console.log('useAgentWorker: Cleanup - terminating worker');
       mountedRef.current = false;
       if (workerRef.current) {
         workerRef.current.terminate();
@@ -239,12 +266,21 @@ export function useAgentWorker(options: UseAgentWorkerOptions): UseAgentWorkerRe
     };
   }, []); // Empty dependency array - only run on mount
 
-  // Handle endpoint changes
+  // Handle endpoint changes separately from mount
+  const previousEndpointRef = useRef(endpoint);
   useEffect(() => {
-    if (workerRef.current && mountedRef.current) {
-      connect();
+    // Only reconnect if endpoint actually changed after initial mount
+    if (previousEndpointRef.current !== endpoint && workerRef.current && mountedRef.current) {
+      console.log('Endpoint changed from', previousEndpointRef.current, 'to', endpoint, '- reconnecting...');
+      disconnect();
+      setTimeout(() => {
+        if (mountedRef.current) {
+          connect();
+        }
+      }, 100);
     }
-  }, [endpoint, connect]);
+    previousEndpointRef.current = endpoint;
+  }, [endpoint]); // Only depend on endpoint
 
   return {
     ...state,

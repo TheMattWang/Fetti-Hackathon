@@ -17,5 +17,5 @@ cd server
 pip install -r requirements.txt
 
 # Start the FastAPI server
-echo "🔥 Starting FastAPI server on http://localhost:8000"
+echo "🔥 Starting FastAPI server on http://localhost:9000"
 python main.py

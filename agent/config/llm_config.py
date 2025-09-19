@@ -28,5 +28,5 @@ def get_llm(temperature: float = 0):
     os.environ["GOOGLE_API_KEY"] = google_api_key
     
     # Initialize and return the LLM
-    llm = init_chat_model("google_genai:gemini-2.5-flash", temperature=temperature)
+    llm = init_chat_model("google_genai:gemini-2.5-flash-lite", temperature=temperature)
     return llm
