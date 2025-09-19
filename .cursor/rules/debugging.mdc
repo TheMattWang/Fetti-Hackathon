@@ -1,0 +1,56 @@
+# Debugging: Agent Returns Raw SQL Instead of Results
+
+> "Just reference it when needing to debug. It needs to know how to debug and save context of previous attempts to do so. Plus test driven development will eventually lead to the root cause."
+
+## Goal
+Ensure the agent **executes** SQL and returns **tabular results** (JSON/Markdown), not raw SQL text.
+
+## When to Trigger
+- Assistant output contains SQL keywords but **no table or rows**.
+- No `execute_sql` (or equivalent) tool call was made.
+- The response says “here’s the query” instead of returning results.
+
+---
+
+## Quick Triage (5 mins)
+1) **Tool Wiring**
+   - Tool name in code == tool name in prompt: `execute_sql` vs `run_sql`.
+   - Tool is **enabled** and exported to runtime.
+
+2) **System Prompt Contract**
+   - Include: *“Never output raw SQL to the user; always call `execute_sql` and then summarize results.”*
+
+3) **Return/Render Shape**
+   - Tool returns `{ "columns": [...], "rows": [[...], ...] }`.
+   - Renderer converts that to a table + 1-line insight.
+
+---
+
+## Hard Guardrails (paste into system/tools)
+**System Addendum**
+- *Do not show raw SQL to the user.*
+- *When data is needed, call `execute_sql({sql, params})`. After the tool returns, present a concise table and a one-sentence summary.*
+- *If your draft answer contains SQL, do **not** send it. Instead, call the tool, then answer with results.*
+
+**Tool Contract (JSON Schema)**
+```json
+{
+  "type": "function",
+  "function": {
+    "name": "execute_sql",
+    "description": "Execute a SQL query against the primary database and return rows.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "sql": { "type": "string", "description": "Parameterized SQL ONLY." },
+        "params": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Positional parameters, if any."
+        },
+        "dry_run": { "type": "boolean", "description": "Validate/EXPLAIN only.", "default": false }
+      },
+      "required": ["sql"]
+    }
+  }
+}

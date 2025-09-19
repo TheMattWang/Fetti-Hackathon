@@ -280,10 +280,10 @@ async def startup_event():
         
         # Create agent with retry limits and enhanced logging
         logger.info("Creating SQL agent with max_iterations=3...")
-        sql_agent = agent_builder.setup_llm().create_sql_agent(max_iterations=3)
+        sql_agent = agent_builder.setup_llm(temperature=0.5).create_sql_agent(max_iterations=3)
         
         logger.info("SQL Agent initialized successfully!")
-        logger.info(f"Agent configuration: max_iterations=3, temperature=0")
+        logger.info(f"Agent configuration: max_iterations=3, temperature=0.5")
         
     except Exception as e:
         logger.error(f"Failed to initialize agent: {e}")
@@ -421,54 +421,25 @@ async def process_query_async(message: str, request_id: str, session_id: str):
                 messages_for_agent = conversation_sessions[session_id][-4:]
                 logger.info(f"[{request_id}] Using {len(messages_for_agent)} messages from conversation history")
                 
-                for step in sql_agent.stream(
+                # Use invoke instead of stream for create_react_agent
+                result = sql_agent.invoke(
                     {"messages": messages_for_agent},
-                    stream_mode="values",
                     config={"recursion_limit": 20}  # Increased limit for complex queries
-                ):
-                    step_count += 1
-                    current_time = time.time()
-                    elapsed_time = current_time - start_time
-                    
-                    logger.info(f"[{request_id}] Processing step {step_count} (elapsed: {elapsed_time:.2f}s)")
-                    
-                    # Circuit breaker: Stop if taking too long
-                    if elapsed_time > 40.0:  # Internal 40-second limit (5s buffer before main timeout)
-                        logger.warning(f"[{request_id}] Agent execution taking too long ({elapsed_time:.2f}s), terminating")
-                        responses.append("Query processing was terminated due to timeout. This might be due to LLM service issues. Please try again.")
-                        break
-                    
-                    # Check if we've exceeded our intended iteration limit
-                    if step_count > max_iterations * 2:  # Conservative limit
-                        logger.warning(f"[{request_id}] Agent exceeded expected iteration limit ({step_count} steps), terminating")
-                        responses.append("Query processing exceeded maximum steps. Please try a simpler query.")
-                        break
-                    
-                    # Log the step content for debugging
-                    if step:
-                        logger.debug(f"[{request_id}] Step content: {str(step)[:200]}...")
-                    
-                    # Collect the agent's response
-                    if step and "messages" in step and step["messages"]:
-                        last_message = step["messages"][-1]
-                        if hasattr(last_message, 'content'):
-                            logger.info(f"[{request_id}] Message content from step {step_count}: {last_message.content[:100]}...")
-                            responses.append(last_message.content)
-                        
-                        # Check for tool calls or other message types
-                        if hasattr(last_message, 'tool_calls') and last_message.tool_calls:
-                            logger.info(f"[{request_id}] Tool calls in step {step_count}: {len(last_message.tool_calls)} tools")
-                            
-                            # Log individual tool calls for debugging
-                            for i, tool_call in enumerate(last_message.tool_calls):
-                                tool_name = getattr(tool_call, 'name', 'unknown')
-                                logger.info(f"[{request_id}] Tool {i+1}: {tool_name}")
+                )
                 
-                logger.info(f"[{request_id}] Agent execution completed after {step_count} steps")
-                final_response = "\n".join(responses) if responses else "No response from agent"
-                logger.info(f"[{request_id}] Final response length: {len(final_response)} characters")
+                logger.info(f"[{request_id}] Agent execution completed")
                 
-                return final_response
+                # Extract the final response from the result
+                if result and "messages" in result and result["messages"]:
+                    last_message = result["messages"][-1]
+                    if hasattr(last_message, 'content') and last_message.content:
+                        final_response = last_message.content
+                        logger.info(f"[{request_id}] Final response: {final_response[:100]}...")
+                        return final_response
+                
+                # Fallback if no content found
+                logger.warning(f"[{request_id}] No content found in agent response")
+                return "I received your query but couldn't generate a proper response. Please try rephrasing your question."
                 
             except Exception as e:
                 error_msg = str(e)

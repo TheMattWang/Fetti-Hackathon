@@ -1,0 +1,24 @@
+SQL Agent Workflow Diagram
+==================================================
+
+    USER INPUT
+        ↓
+    AGENT BUILDER (create_sql_agent)
+        ↓
+    LANGGRAPH REACT AGENT
+        ↓
+    TOOL SELECTION
+        ├── sql_db_query (Primary SQL execution)
+        ├── sql_db_schema (Database schema)
+        ├── sql_db_list_tables (List tables)
+        ├── analyze_austin_location (Location analysis)
+        ├── get_austin_search_suggestions (Location patterns)
+        ├── analyze_date_patterns (Date analysis)
+        └── get_day_of_week_sql_patterns (Day patterns)
+        ↓
+    TOOL EXECUTION
+        ↓
+    RESPONSE FORMATTING
+        ↓
+    USER OUTPUT
+    
