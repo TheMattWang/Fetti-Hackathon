@@ -71,11 +71,24 @@ export function useAgentWorker(options: UseAgentWorkerOptions): UseAgentWorkerRe
       console.log('Initializing Web Worker for agent communication...');
       // Create worker from public directory
       workerRef.current = new Worker('/agent-worker.js');
+      console.log('Web Worker created successfully');
       
-      // Handle worker messages
+      // Handle worker messages - set this immediately after worker creation
       workerRef.current.onmessage = (event) => {
-        if (!mountedRef.current) return;
+        console.log('React hook: onmessage handler called!', {
+          mounted: mountedRef.current,
+          workerExists: !!workerRef.current,
+          message: event.data
+        });
         
+        // Only check if worker still exists, not if component is mounted
+        // (React Strict Mode causes unmounting during development)
+        if (!workerRef.current) {
+          console.log('React hook: Worker terminated, ignoring message');
+          return;
+        }
+        
+        console.log('React hook received message from worker:', event.data);
         const { type, data } = event.data;
         
         switch (type) {
@@ -154,6 +167,12 @@ export function useAgentWorker(options: UseAgentWorkerOptions): UseAgentWorkerRe
       // Handle worker errors
       workerRef.current.onerror = (error) => {
         console.error('Worker error:', error);
+        console.error('Worker error details:', {
+          message: error.message,
+          filename: error.filename,
+          lineno: error.lineno,
+          colno: error.colno
+        });
         if (mountedRef.current) {
           setState(prev => ({
             ...prev,
@@ -266,7 +285,10 @@ export function useAgentWorker(options: UseAgentWorkerOptions): UseAgentWorkerRe
     connect();
     
     return () => {
-      console.log('useAgentWorker: Cleanup - terminating worker');
+      console.log('useAgentWorker: Cleanup - terminating worker', {
+        workerExists: !!workerRef.current,
+        mounted: mountedRef.current
+      });
       mountedRef.current = false;
       if (workerRef.current) {
         workerRef.current.terminate();

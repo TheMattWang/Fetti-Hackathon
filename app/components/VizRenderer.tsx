@@ -12,6 +12,7 @@ import PieView from './charts/PieView';
 import FunnelView from './charts/FunnelView';
 import ChoroplethView from './maps/ChoroplethView';
 import PointMapView from './maps/PointMapView';
+import EnhancedMapView from './maps/EnhancedMapView';
 import { getLatLonFields, getGeoField } from '@/lib/fieldAccess';
 
 interface VizRendererProps {
@@ -31,10 +32,10 @@ export default function VizRenderer({ plan, rows, showTable = false }: VizRender
     return <ChoroplethView plan={plan} rows={rows} />;
   }
 
-  // Check for lat/lon fields for point maps
+  // Check for lat/lon fields for enhanced maps
   const { lat, lon } = getLatLonFields(plan.fields);
-  if (lat && lon && plan.chart.type === 'scatter') {
-    return <PointMapView plan={plan} rows={rows} />;
+  if (lat && lon && (plan.chart.type === 'scatter' || plan.intent === 'map')) {
+    return <EnhancedMapView plan={plan} rows={rows} />;
   }
 
   // Chart rendering based on type

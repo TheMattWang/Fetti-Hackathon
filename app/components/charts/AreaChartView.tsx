@@ -25,7 +25,7 @@ export default function AreaChartView({ plan, rows }: AreaChartViewProps) {
         const seriesValue = row[seriesField.name];
         const yValue = row[yField.name];
         
-        let existingGroup = acc.find(item => item[xField.name] === xValue);
+        let existingGroup = acc.find((item: any) => item[xField.name] === xValue);
         if (!existingGroup) {
           existingGroup = { [xField.name]: xValue };
           acc.push(existingGroup);

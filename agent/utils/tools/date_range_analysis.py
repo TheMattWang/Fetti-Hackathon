@@ -67,12 +67,18 @@ def analyze_date_ranges(db_manager: DatabaseManager) -> DateRangeInfo:
                 date_summary="Could not parse date information"
             )
         
-        # Get all unique dates
+        # Get all unique dates (handle text format MM/DD/YY)
         date_query = """
-        SELECT DISTINCT DATE(started_at) as date, COUNT(*) as count
+        SELECT DISTINCT 
+            CASE 
+                WHEN started_at LIKE '%/%' THEN 
+                    substr(started_at, 1, instr(started_at, ' ') - 1)
+                ELSE started_at 
+            END as date, 
+            COUNT(*) as count
         FROM trips 
-        WHERE started_at IS NOT NULL
-        GROUP BY DATE(started_at) 
+        WHERE started_at IS NOT NULL AND started_at != ''
+        GROUP BY date 
         ORDER BY date
         """
         

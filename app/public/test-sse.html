@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SSE Test</title>
+</head>
+<body>
+    <h1>SSE Connection Test</h1>
+    <div id="status">Connecting...</div>
+    <div id="messages"></div>
+    <button onclick="sendMessage()">Send Test Message</button>
+    
+    <script>
+        const statusDiv = document.getElementById('status');
+        const messagesDiv = document.getElementById('messages');
+        
+        console.log('Starting SSE connection...');
+        
+        const eventSource = new EventSource('http://localhost:9000/api/agent/stream');
+        
+        eventSource.onopen = function(event) {
+            console.log('SSE connection opened');
+            statusDiv.innerHTML = '<span style="color: green;">Connected</span>';
+        };
+        
+        eventSource.onmessage = function(event) {
+            console.log('SSE message received:', event.data);
+            const messageDiv = document.createElement('div');
+            messageDiv.textContent = event.data;
+            messagesDiv.appendChild(messageDiv);
+        };
+        
+        eventSource.onerror = function(event) {
+            console.error('SSE error:', event);
+            statusDiv.innerHTML = '<span style="color: red;">Error</span>';
+        };
+        
+        function sendMessage() {
+            fetch('http://localhost:9000/api/agent/query', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    message: 'Hello, can you help me?',
+                    requestId: 'test-' + Date.now(),
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Query sent:', data);
+            })
+            .catch(error => {
+                console.error('Error sending message:', error);
+            });
+        }
+    </script>
+</body>
+</html>

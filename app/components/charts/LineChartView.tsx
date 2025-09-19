@@ -25,7 +25,7 @@ export default function LineChartView({ plan, rows }: LineChartViewProps) {
         const seriesValue = row[seriesField.name];
         const yValue = row[yField.name];
         
-        let existingGroup = acc.find(item => item[xField.name] === xValue);
+        let existingGroup = acc.find((item: any) => item[xField.name] === xValue);
         if (!existingGroup) {
           existingGroup = { [xField.name]: xValue };
           acc.push(existingGroup);
@@ -60,7 +60,7 @@ export default function LineChartView({ plan, rows }: LineChartViewProps) {
               labelFormatter={(label) => `${xField.name}: ${label}`}
             />
             
-            {hasGoal && (
+            {hasGoal && plan.chart.goal && (
               <ReferenceLine y={plan.chart.goal} stroke="#ef4444" strokeDasharray="5 5" />
             )}
             

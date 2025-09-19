@@ -31,6 +31,8 @@ class DateAnalysis:
             '%Y-%m-%d',           # 2024-01-15
             '%m/%d/%Y %H:%M:%S',  # 01/15/2024 14:30:00
             '%m/%d/%Y',           # 01/15/2024
+            '%m/%d/%y %H:%M',     # 9/8/25 11:47 (ACTUAL DATABASE FORMAT)
+            '%m/%d/%y',           # 9/8/25
             '%d/%m/%Y %H:%M:%S',  # 15/01/2024 14:30:00
             '%d/%m/%Y',           # 15/01/2024
             '%Y-%m-%dT%H:%M:%S',  # 2024-01-15T14:30:00
@@ -132,17 +134,17 @@ def analyze_date_patterns(date_string: str) -> str:
     if time_of_day:
         result += f"Time of Day: {time_of_day}\n"
     
-    # Add SQL suggestions
-    result += f"\nSQL PATTERNS:\n"
-    result += f"- WHERE strftime('%w', started_at) = '{DateAnalysis.parse_date(date_string).weekday()}'  -- {day_of_week}\n"
-    result += f"- WHERE strftime('%w', started_at) IN ('0','6')  -- Weekend trips\n" if weekend_status == 'Weekend' else f"- WHERE strftime('%w', started_at) NOT IN ('0','6')  -- Weekday trips\n"
+    # Add SQL suggestions (handle text date format MM/DD/YY H:MM)
+    result += f"\nSQL PATTERNS (for text dates like '9/8/25 11:47'):\n"
+    result += f"- WHERE started_at LIKE '%{DateAnalysis.parse_date(date_string).strftime('%m/%d/%y')}%'  -- {day_of_week} trips\n"
+    result += f"- WHERE started_at LIKE '%/%' AND (started_at LIKE '%/0%' OR started_at LIKE '%/6%')  -- Weekend trips (approximate)\n" if weekend_status == 'Weekend' else f"- WHERE started_at LIKE '%/%' AND NOT (started_at LIKE '%/0%' OR started_at LIKE '%/6%')  -- Weekday trips (approximate)\n"
     
     if time_of_day:
         hour_ranges = {
-            'Morning': "strftime('%H', started_at) BETWEEN '05' AND '11'",
-            'Afternoon': "strftime('%H', started_at) BETWEEN '12' AND '16'", 
-            'Evening': "strftime('%H', started_at) BETWEEN '17' AND '21'",
-            'Night': "strftime('%H', started_at) BETWEEN '22' AND '23' OR strftime('%H', started_at) BETWEEN '00' AND '04'"
+            'Morning': "started_at LIKE '% 0[5-9]:%' OR started_at LIKE '% 1[0-1]:%'",
+            'Afternoon': "started_at LIKE '% 1[2-6]:%'", 
+            'Evening': "started_at LIKE '% 1[7-9]:%' OR started_at LIKE '% 2[0-1]:%'",
+            'Night': "started_at LIKE '% 2[2-3]:%' OR started_at LIKE '% 0[0-4]:%'"
         }
         result += f"- WHERE {hour_ranges[time_of_day]}  -- {time_of_day} trips\n"
     
@@ -158,30 +160,31 @@ def get_day_of_week_sql_patterns() -> str:
         SQL patterns and examples for day-of-week analysis
     """
     return """
-DAY OF WEEK SQL PATTERNS:
+DAY OF WEEK SQL PATTERNS (for text dates like '9/8/25 11:47'):
 
-Basic day extraction:
-- strftime('%w', started_at)  -- Returns 0=Sunday, 1=Monday, ..., 6=Saturday
-- strftime('%A', started_at)  -- Returns full day name (Sunday, Monday, etc.)
+IMPORTANT: Database stores dates as TEXT in format "M/D/YY H:MM" (e.g., "9/8/25 11:47")
 
-Common queries:
-- WHERE strftime('%w', started_at) = '1'  -- Monday trips
-- WHERE strftime('%w', started_at) IN ('0','6')  -- Weekend trips (Sat/Sun)
-- WHERE strftime('%w', started_at) NOT IN ('0','6')  -- Weekday trips
+Date filtering patterns:
+- WHERE started_at LIKE '9/%/25%'  -- September 2025 trips
+- WHERE started_at LIKE '%/8/25%'  -- August 8, 2025 trips
+- WHERE started_at LIKE '%/25%'   -- All 2025 trips
 
-Group by day:
-- GROUP BY strftime('%A', started_at)  -- Group by day name
-- GROUP BY strftime('%w', started_at)  -- Group by day number
+Time of day patterns (using LIKE with hour patterns):
+- WHERE started_at LIKE '% 0[5-9]:%' OR started_at LIKE '% 1[0-1]:%'  -- Morning (5am-11am)
+- WHERE started_at LIKE '% 1[2-6]:%'  -- Afternoon (12pm-4pm)
+- WHERE started_at LIKE '% 1[7-9]:%' OR started_at LIKE '% 2[0-1]:%'  -- Evening (5pm-9pm)
+- WHERE started_at LIKE '% 2[2-3]:%' OR started_at LIKE '% 0[0-4]:%'  -- Night (10pm-4am)
 
-Time of day patterns:
-- strftime('%H', started_at) BETWEEN '05' AND '11'  -- Morning (5am-11am)
-- strftime('%H', started_at) BETWEEN '12' AND '16'  -- Afternoon (12pm-4pm)
-- strftime('%H', started_at) BETWEEN '17' AND '21'  -- Evening (5pm-9pm)
-- strftime('%H', started_at) BETWEEN '22' AND '23' OR strftime('%H', started_at) BETWEEN '00' AND '04'  -- Night
+Weekend approximation (since we can't easily extract day of week from text):
+- WHERE started_at LIKE '%/0%' OR started_at LIKE '%/6%'  -- Weekend trips (approximate)
+- WHERE started_at LIKE '%/%' AND NOT (started_at LIKE '%/0%' OR started_at LIKE '%/6%')  -- Weekday trips
 
 Example queries:
-- "Most popular day for trips": SELECT strftime('%A', started_at) as day, COUNT(*) as trips FROM trips GROUP BY strftime('%A', started_at) ORDER BY trips DESC
-- "Weekend vs weekday patterns": SELECT CASE WHEN strftime('%w', started_at) IN ('0','6') THEN 'Weekend' ELSE 'Weekday' END as day_type, COUNT(*) as trips FROM trips GROUP BY day_type
+- "Trips in September 2025": SELECT COUNT(*) FROM trips WHERE started_at LIKE '9/%/25%'
+- "Morning trips": SELECT COUNT(*) FROM trips WHERE started_at LIKE '% 0[5-9]:%' OR started_at LIKE '% 1[0-1]:%'
+- "Recent trips": SELECT * FROM trips WHERE started_at LIKE '%/25%' ORDER BY started_at DESC LIMIT 10
+
+NOTE: For precise day-of-week analysis, consider converting text dates to proper datetime format first.
 """
 
 
@@ -194,30 +197,49 @@ def suggest_day_analysis_queries() -> str:
         List of suggested queries for day/time analysis
     """
     return """
-SUGGESTED DAY/TIME ANALYSIS QUERIES:
+SUGGESTED DAY/TIME ANALYSIS QUERIES (for text dates like '9/8/25 11:47'):
 
-1. "What's the busiest day of the week?"
-   SELECT strftime('%A', started_at) as day, COUNT(*) as trips 
-   FROM trips GROUP BY strftime('%A', started_at) ORDER BY trips DESC
+1. "What's the busiest time of day?"
+   SELECT 
+     CASE 
+       WHEN started_at LIKE '% 0[5-9]:%' OR started_at LIKE '% 1[0-1]:%' THEN 'Morning'
+       WHEN started_at LIKE '% 1[2-6]:%' THEN 'Afternoon'
+       WHEN started_at LIKE '% 1[7-9]:%' OR started_at LIKE '% 2[0-1]:%' THEN 'Evening'
+       ELSE 'Night'
+     END as time_period, 
+     COUNT(*) as trips 
+   FROM trips GROUP BY time_period ORDER BY trips DESC
 
-2. "Compare weekend vs weekday trip volumes"
-   SELECT CASE WHEN strftime('%w', started_at) IN ('0','6') THEN 'Weekend' ELSE 'Weekday' END as day_type, 
-          COUNT(*) as trips, AVG(CAST(strftime('%H', started_at) AS INTEGER)) as avg_hour
+2. "Compare weekend vs weekday trip volumes (approximate)"
+   SELECT 
+     CASE 
+       WHEN started_at LIKE '%/0%' OR started_at LIKE '%/6%' THEN 'Weekend'
+       ELSE 'Weekday'
+     END as day_type, 
+     COUNT(*) as trips
    FROM trips GROUP BY day_type
 
-3. "Peak hours by day of week"
-   SELECT strftime('%A', started_at) as day, strftime('%H', started_at) as hour, COUNT(*) as trips
-   FROM trips GROUP BY strftime('%A', started_at), strftime('%H', started_at) 
-   ORDER BY day, trips DESC
+3. "Peak hours analysis"
+   SELECT 
+     substr(started_at, instr(started_at, ' ') + 1, 2) as hour, 
+     COUNT(*) as trips
+   FROM trips 
+   WHERE started_at LIKE '% %'
+   GROUP BY hour 
+   ORDER BY trips DESC
 
 4. "Morning rush hour patterns"
-   SELECT strftime('%A', started_at) as day, COUNT(*) as morning_trips
-   FROM trips WHERE strftime('%H', started_at) BETWEEN '07' AND '09'
-   GROUP BY strftime('%A', started_at) ORDER BY morning_trips DESC
+   SELECT COUNT(*) as morning_trips
+   FROM trips 
+   WHERE started_at LIKE '% 0[7-9]:%' OR started_at LIKE '% 1[0-1]:%'
 
-5. "Late night weekend activity"
-   SELECT strftime('%A', started_at) as day, COUNT(*) as late_night_trips
-   FROM trips WHERE strftime('%w', started_at) IN ('0','6') 
-   AND (strftime('%H', started_at) BETWEEN '22' AND '23' OR strftime('%H', started_at) BETWEEN '00' AND '02')
-   GROUP BY strftime('%A', started_at) ORDER BY late_night_trips DESC
+5. "Late night activity"
+   SELECT COUNT(*) as late_night_trips
+   FROM trips 
+   WHERE started_at LIKE '% 2[2-3]:%' OR started_at LIKE '% 0[0-2]:%'
+
+6. "Recent trips (September 2025)"
+   SELECT * FROM trips 
+   WHERE started_at LIKE '9/%/25%' 
+   ORDER BY started_at DESC LIMIT 10
 """

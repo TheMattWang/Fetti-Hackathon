@@ -22,17 +22,34 @@ const MessageTypes = {
 
 // Send message to main thread
 function sendToMain(type, data = {}) {
-  self.postMessage({
+  const message = {
     type,
     data,
     timestamp: Date.now()
-  });
+  };
+  console.log(`[AgentWorker] Sending message to main thread:`, message);
+  self.postMessage(message);
 }
 
 // Logging function
 function log(message, level = 'info') {
   console.log(`[AgentWorker] ${message}`);
   sendToMain(MessageTypes.LOG, { message, level });
+}
+
+// Enhanced error logging
+function logError(message, error = null) {
+  const errorDetails = error ? {
+    message: error.message,
+    stack: error.stack,
+    name: error.name
+  } : null;
+  
+  console.error(`[AgentWorker] ERROR: ${message}`, errorDetails);
+  sendToMain(MessageTypes.ERROR, { 
+    message: `${message}${error ? ': ' + error.message : ''}`,
+    details: errorDetails
+  });
 }
 
 // Cleanup function
@@ -116,9 +133,7 @@ function connect() {
   });
   
   try {
-    eventSource = new EventSource(endpoint, {
-      withCredentials: true
-    });
+    eventSource = new EventSource(endpoint);
     
     eventSource.onopen = () => {
       log('SSE connection opened');
@@ -162,10 +177,7 @@ function connect() {
     };
     
   } catch (error) {
-    log(`Failed to create EventSource: ${error.message}`, 'error');
-    sendToMain(MessageTypes.ERROR, { 
-      message: `Connection failed: ${error.message}` 
-    });
+    logError('Failed to create EventSource', error);
     
     sendToMain(MessageTypes.CONNECTION_STATUS, { 
       isConnected: false, 

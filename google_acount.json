@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "dazzling-byway-364305",
+  "private_key_id": "ca72ec150cef49bf263751d0b18eb5f4bed65ad0",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQC/v9GjECt/Dpn4\nh1iikAP160OV0ZSzDUyQnBt6LctW/egYgyfueUOI7v1HO7r6B2GLB7KklvTcFd12\niPiaXkeZqnTfU4/vRAM8NpGHiOtUFY9IrIfumo+Wexc7Y4fWlY4mIAQeE13EsAYb\ne6RKNRUdO0F57OVuR9M/69RxVYHeFMCqpX1Uso1XWW9HCkesqS7e0vVBP9hGhN4Y\nunb7OeLWPevRjj7grWL+h61AQGwnJ7DQxQq4GhiH+b8TGuTX+eoBslxR2zT7x2jg\na2FgKtQLCmjga+mdUhjMP0SsOujuAt0R2jjNmy7J6UkZGOqWx4u1hL4lv+FfBXDP\n9ZgYN2DDAgMBAAECggEAAOrwcZZZ5EbJR947TLPhwPiPnz+ciurXtfgj+DFl6r8B\nBbUC/j+IVOHH8Teromy3SSIP9yezI6aFzn5t/4HPV+tFRJhddP4KAezE74rL4uAj\nimvWTrcLVDi3Q2qA3kRi+h28cfm9FiboMJN76tBW5IfsZ/f79SDU4FZxnYU/lN+E\nbJGpkCF5X9l76p/V5wp+F8eiBbL2JdrykBOnYQA5G9Bix+CP090qR/Wf0j8RglkO\nrTqb/xV4r9BhqsWNgW1iGHkgqexBPMCvPZetl8uciq49YB0e7L1sbCf8sxIX/byN\niJNGqtck6wvEAt/peQ4eZ/DBwCISUX1uA7zbJien6QKBgQDzTnbRZe3Zmi17iNie\n7dSmfNkaqQIJBa7YSeFzQdrRe+fkwbZ0S/SFoDQ6lHF8tzvLIiVw5RMqUQyuiwYU\nwei9K9dy9nd/nf6dOa9TOPCQ/gQN6osiWPA/Ovln/Q2VkRFRKv08Xt3If+ena8bp\nlmv2m8oeM08ms1tMyAdgKdE4hQKBgQDJwMVHtve1G2q2/LIubFkvMyKND69hON5j\nGgdvd1DU7WJUHBPiLIhSP6lSrLbsGtnr+krPH+hgPjc2xAZwnNK4g8kd0lebg+9u\np+Oflg67DxuHj3Qy10cOapRUnJMFsext3yESpU3Inci56Tv0yTFPaDgFPWZLfM4v\nDGOQnGYapwKBgCGlfSryBJVuC9Ikl4hK7XhklYVpT929inNgrCvLNJ55mxT4cOne\nQx9jizV6p8MOd9dcjn7xPthAQxe0JBAkzLG0aWP9j4L3b2mAu60vl50Fc7wU7k6+\nq+KinjDyPrmrSRDHeCOsHtGGVpvBfM16vs1ot+e7QrvgW8TfeJ2kyskdAoGAS6Dm\nkw6EZrCDXVr2lC5rdCUQA57omGJQAwhD10X72AWwgWUREwysgWB54ZL68yDRpgLq\nPiBw5HsOCYqL+3TeDOrh3jr2OkbH30wyKKWAmiB8qmFdJp3Kdh3/woP7HPxoa3tk\nE3BB6z0yfHZw0j8FLAYeUeCFUzDSvZJAVHo8UCsCgYAUPc2F9IWaSY4E0QF5NNmw\nsKqLUyDiwgx/mnoG2dGgdNbzNaZnY/h3qRBPDjWvJlk7cUXqFfhfjm4hc9nm4VQ8\noKKB1i1LVG9jrPUUnKvuSMaPLZW3eBZR827cNkjOSaXx0OqwPBH4i+ndcnYYwnJF\nbHrnHeAmtJ0FMsz+e12CGQ==\n-----END PRIVATE KEY-----\n",
+  "client_email": "fetti-hackathon@dazzling-byway-364305.iam.gserviceaccount.com",
+  "client_id": "112960311736956524648",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/fetti-hackathon%40dazzling-byway-364305.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

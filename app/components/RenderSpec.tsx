@@ -1,6 +1,6 @@
 import React from 'react';
 import { Component, UISpec } from '../lib/schemas';
-import { componentRegistry, ComponentType } from './componentRegistry';
+// import { componentRegistry, ComponentType } from './componentRegistry';
 
 interface RenderSpecProps {
   uiSpec: UISpec;
@@ -13,26 +13,11 @@ export const RenderSpec: React.FC<RenderSpecProps> = React.memo(({
 }) => {
   const renderComponent = React.useCallback((component: Component, index: number) => {
     try {
-      // Security: Only render whitelisted components
-      const ComponentToRender = componentRegistry[component.type as ComponentType];
-      
-      if (!ComponentToRender) {
-        // Unknown component types must be ignored (log a warning)
-        console.warn(`Unknown component type: ${component.type}. Ignoring component with id: ${component.id}`);
-        return null;
-      }
-
-      // Render the component with error boundary
+      // Temporarily disabled for testing
       return (
-        <ComponentErrorBoundary
-          key={component.id}
-          componentId={component.id}
-          onError={onError}
-        >
-          <div className="component-wrapper" data-component-id={component.id} data-component-type={component.type}>
-            <ComponentToRender component={component as any} />
-          </div>
-        </ComponentErrorBoundary>
+        <div key={component.id} className="mb-4 p-4 bg-gray-100 rounded">
+          <p>Component {component.type} temporarily disabled for testing</p>
+        </div>
       );
     } catch (error) {
       console.error(`Error rendering component ${component.id}:`, error);

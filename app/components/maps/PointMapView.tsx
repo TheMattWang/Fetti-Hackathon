@@ -72,7 +72,7 @@ export default function PointMapView({ plan, rows }: PointMapViewProps) {
                 'circle-radius': [
                   'case',
                   ['has', 'value'],
-                  getRadius(['get', 'value']),
+                  ['interpolate', ['linear'], ['get', 'value'], minValue, 4, maxValue, 16],
                   6
                 ]
               }}
@@ -85,7 +85,7 @@ export default function PointMapView({ plan, rows }: PointMapViewProps) {
                 'circle-radius': [
                   'case',
                   ['has', 'value'],
-                  ['+', getRadius(['get', 'value']), 1],
+                  ['+', ['interpolate', ['linear'], ['get', 'value'], minValue, 4, maxValue, 16], 1],
                   7
                 ],
                 'circle-opacity': 1

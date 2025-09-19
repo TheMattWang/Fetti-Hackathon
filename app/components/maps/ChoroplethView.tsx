@@ -17,17 +17,13 @@ export default function ChoroplethView({ plan, rows }: ChoroplethViewProps) {
   const geoField = getGeoField(plan.fields);
   const valueField = getFieldByName(plan.fields, plan.chart.y || '');
 
-  if (!geoField || !valueField) {
-    return <div className="p-8 text-center text-gray-500">Missing required fields for choropleth map</div>;
-  }
-
   useEffect(() => {
     // Load appropriate GeoJSON based on data
     const loadGeoData = async () => {
       try {
         // Simple heuristic: if we have US state codes, use USA states
         const hasUSStates = rows.some(row => 
-          ['CA', 'NY', 'TX', 'FL', 'IL', 'PA'].includes(row[geoField.name])
+          ['CA', 'NY', 'TX', 'FL', 'IL', 'PA'].includes(row[geoField?.name || ''])
         );
         
         const geoFile = hasUSStates ? '/data/usa_states.geojson' : '/data/world_countries.geojson';
@@ -42,7 +38,11 @@ export default function ChoroplethView({ plan, rows }: ChoroplethViewProps) {
     };
 
     loadGeoData();
-  }, [geoField.name, rows]);
+  }, [geoField?.name, rows]);
+
+  if (!geoField || !valueField) {
+    return <div className="p-8 text-center text-gray-500">Missing required fields for choropleth map</div>;
+  }
 
   if (loading) {
     return (
@@ -101,7 +101,7 @@ export default function ChoroplethView({ plan, rows }: ChoroplethViewProps) {
                   [
                     'case',
                     ['has', ['get', 'code'], ['get', 'code']],
-                    getColor(valueLookup[['get', 'code']] || 0),
+                    getColor(valueLookup[String(['get', 'code'])] || 0),
                     '#e5e7eb'
                   ],
                   '#e5e7eb'

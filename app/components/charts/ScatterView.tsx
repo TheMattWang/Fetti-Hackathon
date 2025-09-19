@@ -41,7 +41,7 @@ export default function ScatterView({ plan, rows }: ScatterViewProps) {
               tickFormatter={(value) => formatValue(value, yField)}
             />
             <Tooltip 
-              formatter={(value, name) => [formatValue(value, getFieldByName(plan.fields, name) || yField), name]}
+              formatter={(value, name) => [formatValue(value, getFieldByName(plan.fields, String(name)) || yField), name]}
               labelFormatter={(label) => `${xField.name}: ${label}`}
             />
             <Scatter 

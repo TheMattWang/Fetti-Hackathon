@@ -89,6 +89,11 @@ def clean_agent_response(agent_response: str) -> str:
     
     Removes debug information, raw SQL results, and tool outputs.
     """
+    # First, try to extract the final answer if it's clearly marked
+    final_answer_match = re.search(r'Final Answer:\s*(.+?)(?=\n\n|\nAction:|$)', agent_response, re.DOTALL | re.IGNORECASE)
+    if final_answer_match:
+        return final_answer_match.group(1).strip()
+    
     # Split by lines and process
     lines = agent_response.strip().split('\n')
     cleaned_lines = []
@@ -105,14 +110,14 @@ def clean_agent_response(agent_response: str) -> str:
             'LOCATION:', 'PATTERNS:', 'RELATED:', 'USE:',  # Tool outputs
             '[(', ')]',  # Raw SQL results like [(6,)]
             'SELECT', 'FROM', 'WHERE', 'LIMIT',  # SQL queries
-            'Action:', 'Observation:', 'Thought:'  # Agent reasoning
+            'Action:', 'Observation:', 'Thought:', 'Action Input:'  # Agent reasoning
         ]):
             continue
             
         # Keep the final human-readable answer
         if re.search(r'\d+\s+(groups?|trips?|users?|records?)', line, re.IGNORECASE):
             cleaned_lines.append(line)
-        elif line and not any(skip in line.upper() for skip in ['TOOL', 'SQL', 'QUERY']):
+        elif line and not any(skip in line.upper() for skip in ['TOOL', 'SQL', 'QUERY', 'ACTION', 'OBSERVATION']):
             # Keep other descriptive text that doesn't contain technical terms
             cleaned_lines.append(line)
     
@@ -146,6 +151,8 @@ def format_agent_response_as_patches(agent_response: str, request_id: str) -> Ag
         # Log both original and cleaned for debugging
         logger.info(f"[{request_id}] Original response: {agent_response[:200]}...")
         logger.info(f"[{request_id}] Cleaned response: {cleaned_response}")
+        logger.info(f"[{request_id}] Full original response: {agent_response}")
+        logger.info(f"[{request_id}] Full cleaned response: {cleaned_response}")
         
         # Check if response contains structured data patterns
         if "SELECT" in agent_response.upper() or "table" in agent_response.lower():
@@ -359,8 +366,6 @@ async def agent_stream(request: Request):
         headers={
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
-            "Access-Control-Allow-Origin": "*",  # Will be handled by CORS middleware
-            "Access-Control-Allow-Credentials": "true",
             "X-Accel-Buffering": "no"  # Disable nginx buffering
         }
     )
