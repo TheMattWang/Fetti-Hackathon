@@ -1,0 +1,20 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "name": "United States", "code": "US" },
+      "geometry": { "type": "Polygon", "coordinates": [[[-179.1, 18.9], [-66.9, 18.9], [-66.9, 71.4], [-179.1, 71.4], [-179.1, 18.9]]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Canada", "code": "CA" },
+      "geometry": { "type": "Polygon", "coordinates": [[[-141.0, 41.7], [-52.6, 41.7], [-52.6, 83.1], [-141.0, 83.1], [-141.0, 41.7]]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "United Kingdom", "code": "GB" },
+      "geometry": { "type": "Polygon", "coordinates": [[[-8.2, 49.8], [1.8, 49.8], [1.8, 60.9], [-8.2, 60.9], [-8.2, 49.8]]] }
+    }
+  ]
+}

@@ -1,225 +1,127 @@
-# SQL Agent Frontend
+# SQL Agent Insights Frontend
 
-A React frontend for the LangGraph SQL Agent with server-driven UI capabilities following security-first design principles.
+A production-ready Next.js frontend for interactive data visualization powered by LangGraph.
 
 ## Features
 
-### 🔒 Security-First Design
-- **Whitelisted Components**: Only Table, Chart, and Map components are allowed
-- **Patch Validation**: Every patch is validated with Zod schemas before application
-- **Payload Limits**: Enforced limits on data sizes (200 table rows, 1000 chart points, 5000 map points)
-- **Error Handling**: Failed patches are dropped and logged, never breaking the UI
+- **Interactive Visualizations**: Charts, tables, and maps using Recharts, TanStack Table, and MapLibre GL
+- **Server-Driven UI**: Renders visualizations from normalized specs returned by the backend
+- **Multiple Chart Types**: Bar, line, area, scatter, histogram, box, pie, funnel, and choropleth maps
+- **Geographic Mapping**: Choropleth maps for regions and point maps for lat/lon data
+- **Responsive Design**: Clean, minimal UI with Tailwind CSS
+- **Data Export**: CSV download functionality
+- **Plan Inspection**: View the analysis plan in a collapsible drawer
 
-### 🎨 Server-Driven UI
-- **Dynamic Components**: UI components are created based on agent responses
-- **Patch Protocol**: Supports `append` and `set` operations on component arrays
-- **Real-time Updates**: Components update live as the agent processes queries
+## Tech Stack
 
-### 📊 Rich Visualizations
-- **Interactive Tables**: Sortable, filterable, paginated data tables
-- **Dynamic Charts**: Line, bar, and scatter plots with customizable styling
-- **Map Support**: GeoJSON-ready map components (placeholder implementation)
+- **Next.js 14+** with App Router
+- **TypeScript** for type safety
+- **Recharts** for data visualization
+- **TanStack Table** for data tables
+- **MapLibre GL** via `react-map-gl` for maps
+- **Tailwind CSS** for styling
 
-### 🔄 Real-Time Communication
-- **Server-Sent Events**: Efficient streaming of agent responses
-- **Heartbeat Monitoring**: Automatic connection health checks
-- **Auto-Reconnection**: Intelligent reconnection with exponential backoff
+## Getting Started
+
+1. **Install dependencies**:
+   ```bash
+   npm install
+   ```
+
+2. **Run the development server**:
+   ```bash
+   npm run dev
+   ```
+
+3. **Open your browser** and navigate to `http://localhost:3000`
+
+## Example Queries
+
+Try these example queries to see the different visualization types:
+
+- **Trend Analysis**: "Show weekly active users by plan for last quarter, forecast next 2 weeks"
+- **Geographic Analysis**: "Revenue by state last month (map)"
+- **Category Analysis**: "Top categories by revenue"
+
+## Data Contract
+
+The frontend expects data in the following format from the backend API:
+
+```typescript
+type VizPayload = {
+  plan: VizPlan;
+  rows: any[];
+};
+
+type VizPlan = {
+  intent: "describe"|"trend"|"compare"|"segment"|"forecast"|"distribution"|"map"|"funnel";
+  question: string;
+  dataset: string;
+  sql: string;
+  fields: Field[];
+  chart: ChartSpec;
+  narrative?: string;
+  quality?: { rowCount?: number; rowCountCapHit?: boolean; warnings?: string[] };
+};
+```
+
+## API Endpoints
+
+- `GET /api/insight?q={query}` - Returns visualization data based on the query
 
 ## Project Structure
 
 ```
 app/
-├── lib/
-│   ├── schemas.ts         # Zod schemas & TS types for components + patches
-│   └── patch.ts           # validateAndApplyPatches + patch operations
-├── components/
-│   ├── componentRegistry.tsx   # Whitelisted Table/Chart/Map components
-│   └── RenderSpec.tsx          # Dynamic component rendering
-├── hooks/
-│   └── useAgentStream.ts       # SSE/WebSocket connection management
-├── App.tsx                     # Main application component
-├── App.css                     # Application styles
-├── main.tsx                    # React entry point
-├── index.html                  # HTML template
-├── package.json               # Dependencies and scripts
-├── vite.config.ts             # Vite configuration
-└── tsconfig.json              # TypeScript configuration
+├── app/                    # Next.js App Router
+│   ├── api/insight/       # API routes
+│   ├── globals.css        # Global styles
+│   ├── layout.tsx         # Root layout
+│   └── page.tsx           # Main page
+├── components/            # React components
+│   ├── charts/           # Chart components
+│   ├── maps/             # Map components
+│   ├── TableView.tsx     # Data table
+│   └── VizRenderer.tsx   # Main renderer
+├── data/                 # GeoJSON data files
+├── lib/                  # Utility functions
+├── types/                # TypeScript types
+└── public/               # Static assets
 ```
 
-## Getting Started
+## Features Implemented
 
-### Prerequisites
-- Node.js 18.0.0 or higher
-- npm or yarn package manager
+✅ **Chart Types**: All requested chart types (bar, line, area, scatter, hist, box, pie, funnel)
+✅ **Maps**: Choropleth and point maps with MapLibre GL
+✅ **Table View**: Sortable data table with TanStack Table
+✅ **Responsive Design**: Mobile-friendly layout
+✅ **Loading States**: Skeleton loading animations
+✅ **Error Handling**: User-friendly error messages
+✅ **CSV Export**: Download data as CSV
+✅ **Plan Inspection**: View analysis plan JSON
+✅ **Auto-conversion**: Pie charts auto-convert to bar for >6 categories
+✅ **Top K Badge**: Shows when top K transform is applied
+✅ **Confidence Intervals**: Support for forecast confidence bands
+✅ **Goal Lines**: Support for reference lines in charts
 
-### Installation
+## Mock Data
 
-1. Install dependencies:
-   ```bash
-   cd app
-   npm install
-   ```
+The application includes three mock responses:
 
-2. Start the development server:
-   ```bash
-   npm run dev
-   ```
-
-3. Open your browser to `http://localhost:3000`
-
-### Build for Production
-
-```bash
-npm run build
-npm run preview
-```
-
-## Configuration
-
-### Environment Variables
-- The app connects to `http://localhost:8000/agent/stream` by default
-- Pass a custom endpoint via the `agentEndpoint` prop to the App component
-
-### CORS Setup
-The app is configured to work with an agent backend on `localhost:8000`. Update `vite.config.ts` if your backend runs on a different port.
-
-## Component System
-
-### Table Component
-- **Features**: Sorting, filtering, pagination
-- **Data Limit**: 200 rows per table
-- **Configuration**: Title, sort options, pagination settings
-
-### Chart Component
-- **Types**: Line, bar, scatter plots
-- **Data Limit**: 1000 points per chart
-- **Features**: Multi-series support, custom colors, axis labels
-
-### Map Component
-- **Format**: GeoJSON features
-- **Data Limit**: 5000 features per map
-- **Features**: Center/zoom control, popup support
-- **Note**: Currently shows placeholder - integrate with react-leaflet for full functionality
-
-## Patch Protocol
-
-The frontend accepts patch operations that modify the UI specification:
-
-```json
-{
-  "patches": [
-    {
-      "op": "append",
-      "path": "/children",
-      "value": {
-        "id": "table-1",
-        "type": "Table",
-        "data": { ... },
-        "config": { ... }
-      }
-    }
-  ],
-  "requestId": "req_123"
-}
-```
-
-### Supported Operations
-- `append`: Add a new component to the end of the children array
-- `set`: Replace a component at a specific index
-
-### Security Validation
-- All patches are validated against Zod schemas
-- Invalid patches are dropped and logged
-- Component data is size-limited per security rules
-- Only whitelisted component types are allowed
-
-## Agent Integration
-
-### Expected Backend Interface
-
-**Stream Endpoint**: `GET /agent/stream`
-- Returns Server-Sent Events
-- Sends patch operations as JSON messages
-
-**Query Endpoint**: `POST /agent/query`
-- Accepts user queries
-- Triggers processing and streaming responses
-
-### Message Format
-```json
-{
-  "patches": [...],
-  "requestId": "unique-id",
-  "message": "Optional status message"
-}
-```
+1. **Trend Data**: Weekly active users with forecast confidence intervals
+2. **Map Data**: Revenue by US state for choropleth visualization
+3. **Bar Data**: Top categories by revenue
 
 ## Development
 
-### Type Safety
-- Full TypeScript coverage
-- Zod runtime validation
-- Strict type checking enabled
+- **Type Checking**: `npm run type-check`
+- **Linting**: `npm run lint`
+- **Build**: `npm run build`
+- **Start**: `npm start`
 
-### Code Quality
-- ESLint configuration for React and TypeScript
-- React hooks rules enforcement
-- Unused variable detection
+## Browser Support
 
-### Performance
-- Component-level error boundaries
-- Efficient re-rendering with React.memo patterns
-- Lazy loading support for large datasets
-
-## Debugging
-
-### Debug Mode
-In development, the app shows a debug panel with:
-- Connection status
-- UI specification state
-- Raw message content
-- Component count and errors
-
-### Error Handling
-- Component-level error boundaries
-- Patch validation error display
-- Connection error recovery
-- User-friendly error messages
-
-## Security Features
-
-### Input Validation
-- All incoming data validated with Zod schemas
-- Malformed patches are rejected
-- Safe component rendering only
-
-### Content Security
-- No dynamic HTML or script execution
-- Sanitized data rendering
-- CORS-restricted connections
-
-### Error Boundaries
-- Graceful degradation on component errors
-- Isolated failure handling
-- Error reporting without UI breaks
-
-## Future Enhancements
-
-### Map Integration
-- Replace placeholder with react-leaflet
-- Full GeoJSON rendering support
-- Interactive map controls
-
-### Chart Enhancements
-- Additional chart types (pie, area, etc.)
-- Animation support
-- Export functionality
-
-### Real-time Features
-- WebSocket upgrade option
-- Live data streaming
-- Collaborative features
-
-## License
-
-This project is part of the Fetti Hackathon codebase.
+- Chrome (latest)
+- Firefox (latest)
+- Safari (latest)
+- Edge (latest)
