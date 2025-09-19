@@ -22,7 +22,11 @@ import uvicorn
 # Import your organized agent
 import sys
 import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
+# Add current directory to Python path for Vercel deployment
+current_dir = os.path.dirname(__file__)
+if current_dir not in sys.path:
+    sys.path.insert(0, current_dir)
 
 from agent.core import AgentBuilder
 
