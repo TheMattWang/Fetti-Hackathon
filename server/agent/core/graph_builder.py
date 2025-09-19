@@ -1,6 +1,6 @@
 from langgraph.graph import StateGraph, START, END
-from ..utils.state import State
-from ..utils.nodes import chatbot_node
+from agent.utils.state import State
+from agent.utils.nodes import chatbot_node
 
 
 class GraphBuilder:
