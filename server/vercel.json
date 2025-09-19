@@ -1,26 +1,19 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "main.py",
-      "use": "@vercel/python",
-      "config": {
-        "installCommand": "pip install -e ."
-      }
+  "functions": {
+    "api/main.py": {
+      "runtime": "vercel-python@3.11",
+      "includeFiles": ["agent/**"],
+      "maxDuration": 30
     }
-  ],
+  },
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "main.py"
+      "dest": "api/main.py"
     }
   ],
   "env": {
     "OPEN_AI": "@open_ai_key"
-  },
-  "functions": {
-    "main.py": {
-      "maxDuration": 30
-    }
   }
 }

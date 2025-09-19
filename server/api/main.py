@@ -20,7 +20,12 @@ from pydantic import BaseModel, Field
 import uvicorn
 
 # Import your organized agent
-from core import AgentBuilder
+import os, sys
+print("CWD:", os.getcwd())
+print("sys.path[:5]:", sys.path[:5])
+print("LISTDIR .:", os.listdir("."))
+
+from agent.core import AgentBuilder
 
 # Configure logging with detailed format
 logging.basicConfig(
