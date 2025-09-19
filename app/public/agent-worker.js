@@ -138,7 +138,8 @@ function connect() {
     eventSource.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        log(`Received message: ${event.data.substring(0, 100)}...`);
+        log(`Received message: ${event.data.substring(0, 200)}...`);
+        log(`Message has patches: ${!!data.patches}, has message: ${!!data.message}`);
         
         // Forward agent response to main thread
         sendToMain(MessageTypes.AGENT_RESPONSE, {
@@ -148,6 +149,7 @@ function connect() {
         
       } catch (error) {
         log(`Error parsing message: ${error.message}`, 'error');
+        log(`Raw message data: ${event.data}`);
         sendToMain(MessageTypes.ERROR, { 
           message: `Failed to parse agent message: ${error.message}` 
         });

@@ -8,6 +8,7 @@ providing SSE streaming for real-time UI updates.
 import asyncio
 import json
 import logging
+import re
 import uuid
 from typing import Dict, List, Optional
 from datetime import datetime
@@ -82,19 +83,69 @@ class AgentResponse(BaseModel):
     message: Optional[str] = None
     timestamp: float = Field(default_factory=lambda: datetime.now().timestamp())
 
+def clean_agent_response(agent_response: str) -> str:
+    """
+    Clean up agent response to show only the final user-friendly result.
+    
+    Removes debug information, raw SQL results, and tool outputs.
+    """
+    # Split by lines and process
+    lines = agent_response.strip().split('\n')
+    cleaned_lines = []
+    
+    for line in lines:
+        line = line.strip()
+        
+        # Skip empty lines
+        if not line:
+            continue
+            
+        # Skip debug patterns
+        if any(pattern in line for pattern in [
+            'LOCATION:', 'PATTERNS:', 'RELATED:', 'USE:',  # Tool outputs
+            '[(', ')]',  # Raw SQL results like [(6,)]
+            'SELECT', 'FROM', 'WHERE', 'LIMIT',  # SQL queries
+            'Action:', 'Observation:', 'Thought:'  # Agent reasoning
+        ]):
+            continue
+            
+        # Keep the final human-readable answer
+        if re.search(r'\d+\s+(groups?|trips?|users?|records?)', line, re.IGNORECASE):
+            cleaned_lines.append(line)
+        elif line and not any(skip in line.upper() for skip in ['TOOL', 'SQL', 'QUERY']):
+            # Keep other descriptive text that doesn't contain technical terms
+            cleaned_lines.append(line)
+    
+    # If we have cleaned lines, join them
+    if cleaned_lines:
+        result = ' '.join(cleaned_lines)
+        # Clean up any remaining artifacts
+        result = re.sub(r'\s+', ' ', result)  # Multiple spaces to single
+        return result.strip()
+    
+    # Fallback: try to extract just the final answer
+    # Look for patterns like "6 groups went to..."
+    match = re.search(r'(\d+\s+(?:groups?|trips?|users?|records?).*?)(?=\n|$)', agent_response, re.IGNORECASE)
+    if match:
+        return match.group(1).strip()
+    
+    # Last resort: return original but truncated
+    return agent_response[:200].strip()
+
 def format_agent_response_as_patches(agent_response: str, request_id: str) -> AgentResponse:
     """
-    Convert agent response to UI patches format.
+    Convert agent response to UI patches format with clean formatting.
     
-    This is a simplified version - in practice, you'd want to:
-    1. Parse the agent's SQL results
-    2. Determine the best visualization (Table/Chart/Map)
-    3. Format the data according to the frontend schemas
+    Extracts clean results from agent responses and formats them nicely.
     """
     logger.info(f"[{request_id}] Formatting response of length {len(agent_response)}...")
     try:
-        # For now, we'll create a simple table with the agent's text response
-        # In practice, you'd extract structured data from the SQL agent
+        # Clean up the agent response for better user experience
+        cleaned_response = clean_agent_response(agent_response)
+        
+        # Log both original and cleaned for debugging
+        logger.info(f"[{request_id}] Original response: {agent_response[:200]}...")
+        logger.info(f"[{request_id}] Cleaned response: {cleaned_response}")
         
         # Check if response contains structured data patterns
         if "SELECT" in agent_response.upper() or "table" in agent_response.lower():
@@ -104,14 +155,14 @@ def format_agent_response_as_patches(agent_response: str, request_id: str) -> Ag
                 "type": "Table",
                 "data": {
                     "columns": [
-                        {"key": "response", "title": "Agent Response", "dataType": "string"}
+                        {"key": "response", "title": "Query Result", "dataType": "string"}
                     ],
                     "rows": [
-                        {"response": agent_response}
+                        {"response": cleaned_response}
                     ]
                 },
                 "config": {
-                    "title": "SQL Agent Response",
+                    "title": "SQL Query Result",
                     "sortable": False,
                     "filterable": False,
                     "pagination": False
@@ -127,11 +178,11 @@ def format_agent_response_as_patches(agent_response: str, request_id: str) -> Ag
                         {"key": "message", "title": "Response", "dataType": "string"}
                     ],
                     "rows": [
-                        {"message": agent_response[:500] + "..." if len(agent_response) > 500 else agent_response}
+                        {"message": cleaned_response[:500] + "..." if len(cleaned_response) > 500 else cleaned_response}
                     ]
                 },
                 "config": {
-                    "title": "Agent Response",
+                    "title": "Analysis Result",
                     "sortable": False,
                     "filterable": False,
                     "pagination": False
@@ -189,8 +240,10 @@ async def broadcast_to_clients(response: AgentResponse):
     
     logger.info(f"[{response.requestId}] Serializing response data...")
     message_data = response.model_dump()
+    logger.info(f"[{response.requestId}] Message data structure: {message_data}")
     message = f"data: {json.dumps(message_data)}\n\n"
     logger.info(f"[{response.requestId}] Message serialized, length: {len(message)}")
+    logger.info(f"[{response.requestId}] SSE message preview: {message[:200]}...")
     
     disconnected_clients = []
     
@@ -364,14 +417,14 @@ async def process_query_async(message: str, request_id: str, session_id: str):
                 # Add current user message to history
                 conversation_sessions[session_id].append({"role": "user", "content": message})
                 
-                # Use conversation history for context (keep last 10 messages to avoid token limits)
-                messages_for_agent = conversation_sessions[session_id][-10:]
+                # Use conversation history for context (keep last 4 messages to avoid token limits)
+                messages_for_agent = conversation_sessions[session_id][-4:]
                 logger.info(f"[{request_id}] Using {len(messages_for_agent)} messages from conversation history")
                 
                 for step in sql_agent.stream(
                     {"messages": messages_for_agent},
                     stream_mode="values",
-                    config={"recursion_limit": max_iterations + 2}  # Tighter limit
+                    config={"recursion_limit": 20}  # Increased limit for complex queries
                 ):
                     step_count += 1
                     current_time = time.time()
@@ -380,9 +433,9 @@ async def process_query_async(message: str, request_id: str, session_id: str):
                     logger.info(f"[{request_id}] Processing step {step_count} (elapsed: {elapsed_time:.2f}s)")
                     
                     # Circuit breaker: Stop if taking too long
-                    if elapsed_time > 15.0:  # Internal 15-second limit
+                    if elapsed_time > 40.0:  # Internal 40-second limit (5s buffer before main timeout)
                         logger.warning(f"[{request_id}] Agent execution taking too long ({elapsed_time:.2f}s), terminating")
-                        responses.append("Query processing was terminated due to timeout. Please try a simpler query.")
+                        responses.append("Query processing was terminated due to timeout. This might be due to LLM service issues. Please try again.")
                         break
                     
                     # Check if we've exceeded our intended iteration limit
@@ -418,8 +471,16 @@ async def process_query_async(message: str, request_id: str, session_id: str):
                 return final_response
                 
             except Exception as e:
-                logger.error(f"[{request_id}] Error in agent execution: {str(e)}")
-                raise
+                error_msg = str(e)
+                logger.error(f"[{request_id}] Error in agent execution: {error_msg}")
+                
+                # Handle specific error types
+                if "recursion limit" in error_msg.lower():
+                    return "I'm sorry, but this query is too complex and caused the agent to loop indefinitely. Please try a simpler query or break it into smaller parts."
+                elif "timeout" in error_msg.lower():
+                    return "The query timed out. Please try a simpler query."
+                else:
+                    return f"Error processing query: {error_msg}"
         
         # Run the agent in a thread pool to avoid blocking with timeout
         logger.info(f"[{request_id}] Executing agent with timeout protection...")
@@ -427,14 +488,14 @@ async def process_query_async(message: str, request_id: str, session_id: str):
         try:
             agent_response = await asyncio.wait_for(
                 loop.run_in_executor(None, run_agent),
-                timeout=20.0  # Reduced to 20 second timeout
+                timeout=45.0  # Increased to 45 second timeout to accommodate LLM retries
             )
             execution_time = asyncio.get_event_loop().time() - start_time
             logger.info(f"[{request_id}] Agent execution completed successfully in {execution_time:.2f}s")
         except asyncio.TimeoutError:
             execution_time = asyncio.get_event_loop().time() - start_time
             logger.error(f"[{request_id}] Agent execution timed out after {execution_time:.2f} seconds")
-            agent_response = "Sorry, the query took too long to process (>20s). Please try a simpler query."
+            agent_response = "Sorry, the query took too long to process (>45s). This might be due to LLM service issues. Please try again."
         except Exception as e:
             execution_time = asyncio.get_event_loop().time() - start_time
             logger.error(f"[{request_id}] Agent execution failed after {execution_time:.2f}s: {str(e)}")
@@ -443,8 +504,8 @@ async def process_query_async(message: str, request_id: str, session_id: str):
         # Add assistant response to conversation history
         if session_id in conversation_sessions and isinstance(agent_response, str):
             conversation_sessions[session_id].append({"role": "assistant", "content": agent_response})
-            # Keep conversation history manageable (last 20 messages)
-            conversation_sessions[session_id] = conversation_sessions[session_id][-20:]
+            # Keep conversation history manageable (last 8 messages)
+            conversation_sessions[session_id] = conversation_sessions[session_id][-8:]
             logger.info(f"[{request_id}] Added assistant response to conversation history (session: {session_id})")
         
         # Format response as UI patches

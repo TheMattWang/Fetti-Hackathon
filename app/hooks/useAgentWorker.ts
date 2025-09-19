@@ -91,8 +91,12 @@ export function useAgentWorker(options: UseAgentWorkerOptions): UseAgentWorkerRe
             break;
             
           case MessageTypes.AGENT_RESPONSE:
+            console.log('Processing AGENT_RESPONSE from worker:', data);
+            console.log('Has patches:', !!data.patches, 'Has message:', !!data.message);
+            
             // Process agent response and apply patches
             if (data.patches) {
+              console.log('Processing patches:', data.patches.length, 'patches');
               const requestId = data.requestId || generateRequestId();
               
               setState(prev => {
@@ -107,13 +111,18 @@ export function useAgentWorker(options: UseAgentWorkerOptions): UseAgentWorkerRe
                   uiSpec: result.uiSpec,
                   errors: result.errors,
                   lastMessage: data.rawMessage || null,
+                  isLoading: false, // Clear loading state when response received
                 };
               });
             } else if (data.message) {
+              console.log('Processing text message:', data.message);
               setState(prev => ({
                 ...prev,
                 lastMessage: data.message,
+                isLoading: false, // Clear loading state when response received
               }));
+            } else {
+              console.warn('Received AGENT_RESPONSE but no patches or message field:', data);
             }
             break;
             
@@ -122,7 +131,7 @@ export function useAgentWorker(options: UseAgentWorkerOptions): UseAgentWorkerRe
             setState(prev => ({
               ...prev,
               error: data.message,
-              isLoading: false,
+              isLoading: false, // Ensure loading is cleared on errors
             }));
             break;
             

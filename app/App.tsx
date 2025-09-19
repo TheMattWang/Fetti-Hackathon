@@ -12,6 +12,7 @@ export const App: React.FC<AppProps> = ({
 }) => {
   const [query, setQuery] = useState('');
   const [queryHistory, setQueryHistory] = useState<string[]>([]);
+  const [debugMode, setDebugMode] = useState(false);
 
   // Use Web Worker for safe agent communication (prevents UI crashes)
   const agentStream = useAgentWorker({
@@ -67,13 +68,8 @@ export const App: React.FC<AppProps> = ({
     console.error(`Component ${componentId} error:`, error);
   }, []);
 
-  const quickQueries = [
-    'What is the most common place for drop offs?',
-    'Show me daily trip counts for the last 30 days',
-    'Which users have taken the most trips?',
-    'Show me the average trip distance by day',
-    'What are the busiest pickup locations?',
-  ];
+  // Removed quick queries to save LLM calls
+  const quickQueries: string[] = [];
 
   return (
     <div className="app">
@@ -192,8 +188,8 @@ export const App: React.FC<AppProps> = ({
           ), [uiSpec, handleComponentError])}
         </section>
 
-        {/* Debug Info - Disabled for now */}
-        {false && React.useMemo(() => (
+        {/* Debug Info */}
+        {debugMode && React.useMemo(() => (
           <section className="debug-section">
             <details>
               <summary>Debug Information</summary>
@@ -227,6 +223,9 @@ export const App: React.FC<AppProps> = ({
         </p>
         <button onClick={disconnect} className="disconnect-button">
           Disconnect
+        </button>
+        <button onClick={() => setDebugMode(!debugMode)} className="debug-toggle-button">
+          {debugMode ? 'Hide Debug' : 'Show Debug'}
         </button>
       </footer>
     </div>
