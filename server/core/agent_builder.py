@@ -1,7 +1,7 @@
 from langgraph.prebuilt import create_react_agent
-from agent.config import get_llm
-from agent.utils.tools import DatabaseManager, get_sql_tools, get_sql_system_prompt
-from agent.core.graph_builder import GraphBuilder
+from config import get_llm
+from utils.tools import DatabaseManager, get_sql_tools, get_sql_system_prompt
+from core.graph_builder import GraphBuilder
 
 
 class AgentBuilder:

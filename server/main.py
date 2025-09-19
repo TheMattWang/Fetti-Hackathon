@@ -20,7 +20,7 @@ from pydantic import BaseModel, Field
 import uvicorn
 
 # Import your organized agent
-from agent.core import AgentBuilder
+from core import AgentBuilder
 
 # Configure logging with detailed format
 logging.basicConfig(

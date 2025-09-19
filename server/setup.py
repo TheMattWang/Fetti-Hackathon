@@ -4,6 +4,7 @@ setup(
     name="sql-agent-server",
     version="1.0.0",
     packages=find_packages(),
+    py_modules=["main"],
     install_requires=[
         "fastapi>=0.104.1",
         "uvicorn[standard]>=0.24.0",
