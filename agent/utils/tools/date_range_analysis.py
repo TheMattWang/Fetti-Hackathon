@@ -173,8 +173,32 @@ def analyze_database_date_ranges(db_manager: DatabaseManager) -> str:
             last_month_date = now.replace(month=now.month - 1)
             last_month = last_month_date.strftime("%B %Y")
         
-        # Get basic database info without being too specific
+        # Get basic database info to provide intelligent guidance
         date_info = analyze_date_ranges(db_manager)
+        
+        # Parse the actual database date range for smarter interpretation
+        earliest_date = date_info.earliest_date
+        latest_date = date_info.latest_date
+        
+        # Extract month/year from database dates for comparison
+        from datetime import datetime
+        try:
+            # Parse database dates (format: "8/31/25 22:16")
+            db_earliest = datetime.strptime(earliest_date.split()[0], "%m/%d/%y")
+            db_latest = datetime.strptime(latest_date.split()[0], "%m/%d/%y")
+            
+            # Determine what "last month" should actually mean based on data
+            if db_earliest.month == now.month - 1 or (now.month == 1 and db_earliest.month == 12):
+                # Data starts in the previous month, so "last month" should include that data
+                smart_last_month = f"{db_earliest.strftime('%B')} {db_earliest.year}"
+                data_guidance = f"Data is available from {earliest_date} to {latest_date}, so 'last month' queries should include this period."
+            else:
+                # Data doesn't align with typical "last month" - provide guidance
+                smart_last_month = f"{db_earliest.strftime('%B')} {db_earliest.year}"
+                data_guidance = f"Data is available from {earliest_date} to {latest_date}. For 'last month' queries, use the available date range."
+        except:
+            smart_last_month = last_month
+            data_guidance = f"Data is available from {earliest_date} to {latest_date}."
         
         result = f"""CURRENT DATE CONTEXT:
 
@@ -183,15 +207,16 @@ def analyze_database_date_ranges(db_manager: DatabaseManager) -> str:
 📅 Last Month: {last_month}
 📊 Database Status: Contains {date_info.total_trips} trips with recent data
 
-💡 TEMPORAL QUERY GUIDANCE:
-- When users ask about "last month", they likely mean {last_month}
-- When users ask about "this month", they likely mean {current_month}
-- Make reasonable assumptions about date ranges based on current date
-- The database contains recent trip data that should cover these periods
+💡 INTELLIGENT TEMPORAL QUERY GUIDANCE:
+- When users ask about "last month", they likely mean "recently" or "in the available data period"
+- The available data period is {earliest_date} to {latest_date}
+- IMPORTANT: Database dates are stored as TEXT in format "M/D/YY H:MM" (e.g., "9/5/25 18:06")
+- For temporal queries, use the available date range rather than strict calendar months
+- Use LIKE patterns for date filtering: started_at LIKE '9/%/25%' for September 2025
 - Be confident in your date interpretations and provide specific answers
 
-🎯 RECOMMENDATION: Use the current date context to interpret temporal queries naturally,
-rather than asking for clarification about specific date ranges.
+🎯 RECOMMENDATION: For "last month" queries, interpret as "recently" and use the available data period
+({earliest_date} to {latest_date}) with proper text date format to provide specific answers.
 """
         
         logger.info(f"Current date context provided: {current_date}, last month: {last_month}")

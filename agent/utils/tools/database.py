@@ -104,3 +104,7 @@ class DatabaseManager:
         if "trips" in info.get('views', []):
             sample_output = self.run_sample_query("trips")
             print(f'Sample trips view output: {sample_output}')
+        
+        if "users" in info.get('views', []):
+            sample_output = self.run_sample_query("users")
+            print(f'Sample users view output: {sample_output}')

@@ -76,9 +76,13 @@ IMPORTANT: This database also contains these VIEWS that you can query:
 {', '.join(views)}
 
 These views provide cleaned, formatted data:
-- 'trips' view: Contains trip information with proper column names (trip_id, booking_user_id, started_at, pickup_address, dropoff_address, etc.)
-- 'users' view: Contains user information 
+- 'trips' view: Contains trip information with proper column names (trip_id, booking_user_id, started_at, pickup_address, dropoff_address, total_passengers, etc.)
+- 'users' view: Contains user information including user_id and age columns (age data available for many users)
 - 'trip_users' view: Contains trip-user relationships
+
+IMPORTANT COLUMN MEANINGS:
+- total_passengers: The number of people in each trip/group (this is the group size)
+- When users ask about "group size", "number of riders", "passengers per trip", etc., use the total_passengers column
 
 PREFER using the views (trips, users, trip_users) over the raw_ tables when possible, as they have cleaner column names and better data formatting.
 """
@@ -109,16 +113,22 @@ EXAMPLES:
 - For "Moody Center" queries: Use analyze_austin_location → get patterns → build SQL → execute
 - For date queries: Use analyze_database_date_ranges_tool → get current date context → analyze_date_patterns → build query → execute
 - For schema questions: Use sql_db_schema → understand structure → build query → execute
-- For "last month" queries: Use analyze_database_date_ranges_tool → interpret based on current date → build appropriate query → execute
+- For "last month" queries: Use analyze_database_date_ranges_tool → interpret as "recently" using available data period → build appropriate query → execute
 
 RULES:
 - Always use LIMIT {top_k} unless more data requested
-- Query 'trips' view for clean data (pickup_address, dropoff_address, started_at, etc.)
+- Query 'trips' view for clean data (pickup_address, dropoff_address, started_at, total_passengers, etc.)
+- Query 'users' view for user data including age information (user_id, age columns available)
 - Read-only queries only (no INSERT/UPDATE/DELETE)
+- IMPORTANT: Database dates are stored as TEXT in format "M/D/YY H:MM" (e.g., "9/5/25 18:06")
+- Use LIKE patterns for date filtering: started_at LIKE '9/%/25%' for September 2025
+- For temporal queries like "last month", interpret as "recently" and use the available data period
 - Present results in a clear, conversational format
 - Make reasonable assumptions when users ask about "last month" or similar time periods
 - If the database contains data from August-September 2025, interpret "last month" as referring to that period
 - Be confident and provide specific answers rather than asking for clarification
+- AGE DATA IS AVAILABLE: The users view contains age information for many users - use it when asked about user demographics
+- GROUP SIZE DATA IS AVAILABLE: The trips view contains total_passengers column - use it when asked about group size, number of riders, passengers per trip, etc.
 
 {view_info}
 """.format(

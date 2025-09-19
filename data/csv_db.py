@@ -49,7 +49,7 @@ def main():
     DROP VIEW IF EXISTS trips;
     DROP VIEW IF EXISTS trip_users;
 
-    -- users: just distinct user ids from both raw sources
+    -- users: distinct user ids with age data from raw_users
     CREATE VIEW users AS
     WITH all_ids AS (
       SELECT DISTINCT "User ID" AS user_id FROM raw_users
@@ -58,7 +58,12 @@ def main():
       UNION
       SELECT DISTINCT "User ID" FROM raw_trip_users
     )
-    SELECT user_id FROM all_ids WHERE user_id IS NOT NULL AND user_id <> '';
+    SELECT 
+      ai.user_id,
+      ru."Age" AS age
+    FROM all_ids ai
+    LEFT JOIN raw_users ru ON ai.user_id = ru."User ID"
+    WHERE ai.user_id IS NOT NULL AND ai.user_id <> '';
 
     -- trips: thin projection with clearer aliases (read-only)
     CREATE VIEW trips AS

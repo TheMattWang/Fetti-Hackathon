@@ -34,7 +34,7 @@ def get_llm(temperature: float = 0):
         # Initialize Google GenAI with retry configuration
         logger.info("Initializing Google GenAI LLM with retry configuration...")
         llm = init_chat_model(
-            "google_genai:gemini-1.5-flash", 
+            "google_genai:gemini-2.0-flash-lite", 
             temperature=temperature,
             # Configure retries - reduce retry attempts to prevent long waits
             max_retries=2,  # Reduce from default (usually 3-6)
