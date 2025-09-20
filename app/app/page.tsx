@@ -1,31 +1,17 @@
-'use client';
-
-import { useState } from 'react';
-
 export default function Home() {
-  const [query, setQuery] = useState('');
-
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold text-center mb-8">
-          SQL Agent - Simple Version
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="text-center">
+        <h1 className="text-4xl font-bold text-gray-900 mb-4">
+          SQL Agent
         </h1>
-        
-        <div className="max-w-2xl mx-auto">
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-semibold mb-4">Test Query</h2>
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Enter your SQL query..."
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-            <p className="mt-4 text-gray-600">
-              Backend URL: https://fetti-hackathon.onrender.com
-            </p>
-          </div>
+        <p className="text-xl text-gray-600 mb-8">
+          Backend: https://fetti-hackathon.onrender.com
+        </p>
+        <div className="bg-white p-6 rounded-lg shadow-sm">
+          <p className="text-gray-700">
+            Frontend deployed successfully on Vercel!
+          </p>
         </div>
       </div>
     </div>

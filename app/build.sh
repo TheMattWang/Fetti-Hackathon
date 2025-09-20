@@ -3,7 +3,7 @@
 # Custom build script to handle caniuse-lite issues
 
 echo "🔧 Installing dependencies..."
-npm ci
+npm ci --include=dev
 
 echo "🔄 Updating browserslist database..."
 npx update-browserslist-db@latest
