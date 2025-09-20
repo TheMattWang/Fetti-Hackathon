@@ -19,13 +19,17 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 import uvicorn
 
-# Import your organized agent
+# Import your organized agent with dynamic loading
 import os, sys
 print("CWD:", os.getcwd())
 print("sys.path[:5]:", sys.path[:5])
 print("LISTDIR .:", os.listdir("."))
 
-from agent.core import AgentBuilder
+# Use lightweight agent wrapper to reduce bundle size
+def get_lightweight_agent():
+    """Get the lightweight agent that loads dependencies dynamically."""
+    from agent.lightweight_agent import get_lightweight_agent
+    return get_lightweight_agent()
 
 # Configure logging with detailed format
 logging.basicConfig(
@@ -55,9 +59,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Global agent instance
-agent_builder = None
-sql_agent = None
+# Global lightweight agent instance
+lightweight_agent = None
 
 # SSE client management with conversation state
 class SSEClient:
@@ -278,23 +281,19 @@ async def broadcast_to_clients(response: AgentResponse):
 
 @app.on_event("startup")
 async def startup_event():
-    """Initialize the agent on startup."""
-    global agent_builder, sql_agent
+    """Initialize the lightweight agent on startup."""
+    global lightweight_agent
     
     try:
-        logger.info("Initializing SQL Agent...")
-        agent_builder = AgentBuilder()
-        agent_builder.print_database_info()  # This will print to console
+        logger.info("Initializing Lightweight SQL Agent...")
+        # Get the lightweight agent (dependencies loaded on first use)
+        lightweight_agent = get_lightweight_agent()
         
-        # Create agent with retry limits and enhanced logging
-        logger.info("Creating SQL agent with max_iterations=3...")
-        sql_agent = agent_builder.setup_llm(temperature=0.5).create_sql_agent(max_iterations=3)
-        
-        logger.info("SQL Agent initialized successfully!")
-        logger.info(f"Agent configuration: max_iterations=3, temperature=0.5")
+        logger.info("Lightweight SQL Agent initialized successfully!")
+        logger.info("Heavy dependencies will be loaded on first query")
         
     except Exception as e:
-        logger.error(f"Failed to initialize agent: {e}")
+        logger.error(f"Failed to initialize lightweight agent: {e}")
         import traceback
         logger.error(f"Full traceback: {traceback.format_exc()}")
         # Continue startup even if agent fails - we can try to reinitialize later
@@ -305,7 +304,7 @@ async def health_check():
     return {
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
-        "agent_ready": sql_agent is not None,
+        "agent_ready": lightweight_agent is not None and lightweight_agent.is_ready(),
         "connected_clients": len(clients)
     }
 
@@ -374,8 +373,8 @@ async def agent_stream(request: Request):
 @app.post("/api/agent/query")
 async def process_query(query_request: QueryRequest):
     """Process user query and stream response via SSE."""
-    if not sql_agent:
-        raise HTTPException(status_code=503, detail="SQL Agent not initialized")
+    if not lightweight_agent:
+        raise HTTPException(status_code=503, detail="Lightweight Agent not initialized")
     
     request_id = query_request.requestId or str(uuid.uuid4())
     session_id = query_request.sessionId or str(uuid.uuid4())
@@ -427,8 +426,8 @@ async def process_query_async(message: str, request_id: str, session_id: str):
                 messages_for_agent = conversation_sessions[session_id][-4:]
                 logger.info(f"[{request_id}] Using {len(messages_for_agent)} messages from conversation history")
                 
-                # Use invoke instead of stream for create_react_agent
-                result = sql_agent.invoke(
+                # Use invoke with lightweight agent (loads dependencies on first use)
+                result = lightweight_agent.invoke(
                     {"messages": messages_for_agent},
                     config={"recursion_limit": 20}  # Increased limit for complex queries
                 )

@@ -5,7 +5,9 @@
       "src": "api/main.py",
       "use": "@vercel/python",
       "config": {
-        "includeFiles": "agent/**"
+        "includeFiles": "agent/**",
+        "excludeFiles": "{data,*.sqlite,*.csv,*.ipynb,*.json,*.md,test_*,debug_*,*_test.py,*.test.py,docs,examples,demo,tests,spec,coverage,.pytest_cache,.mypy_cache,venv,env,.venv,.env,__pycache__,*.pyc,*.pyo,*.pyd,*.egg,*.egg-info,dist,build,.DS_Store,*.log,logs,tmp,temp,.cache,*.jpg,*.jpeg,*.png,*.gif,*.svg,*.mp4,*.zip,*.tar,*.tar.gz,node_modules}/**",
+        "requirementsTxt": "requirements-minimal.txt"
       }
     }
   ],

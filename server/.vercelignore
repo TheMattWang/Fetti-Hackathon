@@ -1,27 +1,131 @@
-# Ignore large files and directories that aren't needed for deployment
+# Comprehensive .vercelignore for Python/FastAPI projects
+# Based on Vercel best practices for serverless functions
+
+# Python virtual environments and caches
 venv/
+env/
+.venv/
+.env/
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 .Python
-env/
-pip-log.txt
-pip-delete-this-directory.txt
-.tox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.log
-.git/
-.mypy_cache/
-.pytest_cache/
-.hypothesis/
-.DS_Store
+*.so
+*.egg
 *.egg-info/
 dist/
 build/
-*.egg
+.pytest_cache/
+.mypy_cache/
+.hypothesis/
+
+# Development and testing files
+test_*.py
+*_test.py
+*.test.py
+debug_*.py
+tests/
+test/
+spec/
+specs/
+coverage/
+.coverage
+.coverage.*
+coverage.xml
+nosetests.xml
+*.cover
+.pytest_cache/
+.tox/
+.nox/
+
+# Documentation and examples
+docs/
+doc/
+*.md
+!README.md
+examples/
+example/
+demo/
+demos/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Logs and temporary files
+*.log
+logs/
+tmp/
+temp/
+.tmp/
+.cache/
+
+# Large data files and databases
+data/
+*.sqlite
+*.db
+*.sql
+*.csv
+*.tsv
+*.json
+!vercel.json
+!package.json
+!package-lock.json
+*.ipynb
+*.pickle
+*.pkl
+*.h5
+*.hdf5
+*.parquet
+
+# Media files
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.svg
+*.mp4
+*.avi
+*.mov
+*.wav
+*.mp3
+
+# Archives and compressed files
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+
+# Environment and config files (keep only essential)
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+config.local.py
+settings.local.py
+
+# Git and version control
+.git/
+.gitignore
+.gitattributes
+
+# Node.js (if any)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Large dependencies that should be loaded dynamically
+# (These are handled by our lightweight agent approach)
+# langchain-community/
+# google-cloud-*/
+# pandas/
+# numpy/
