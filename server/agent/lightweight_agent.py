@@ -25,7 +25,7 @@ class LightweightAgent:
             logger.info("Loading agent dependencies dynamically...")
             
             # Import heavy dependencies only when needed
-            from agent.core import AgentBuilder
+            from agent.core.agent_builder import AgentBuilder
             
             logger.info("Creating agent builder...")
             self._agent_builder = AgentBuilder()

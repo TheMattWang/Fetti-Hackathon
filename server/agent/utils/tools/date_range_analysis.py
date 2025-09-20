@@ -52,7 +52,7 @@ def analyze_date_ranges(db_manager: DatabaseManager) -> DateRangeInfo:
                 date_summary="No date information available"
             )
         
-        # Parse the result - it comes as a string like "('8/31/25 22:16', '9/8/25 2:18', 2000)"
+        # Parse the result - it comes as a string like "('2025-08-31 22:16:00', '2025-09-08 11:47:00', 2000)"
         import re
         match = re.search(r"\('([^']+)', '([^']+)', (\d+)\)", result)
         if match:
@@ -67,19 +67,15 @@ def analyze_date_ranges(db_manager: DatabaseManager) -> DateRangeInfo:
                 date_summary="Could not parse date information"
             )
         
-        # Get all unique dates (handle text format MM/DD/YY)
+        # Get all unique dates (handle datetime format YYYY-MM-DD HH:MM:SS)
         date_query = """
         SELECT DISTINCT 
-            CASE 
-                WHEN started_at LIKE '%/%' THEN 
-                    substr(started_at, 1, instr(started_at, ' ') - 1)
-                ELSE started_at 
-            END as date, 
+            date(started_at) as date, 
             COUNT(*) as count
         FROM trips 
         WHERE started_at IS NOT NULL AND started_at != ''
-        GROUP BY date 
-        ORDER BY date
+        GROUP BY date(started_at)
+        ORDER BY date(started_at)
         """
         
         date_results = db_manager.run_query_with_logging(date_query)
@@ -99,8 +95,8 @@ def analyze_date_ranges(db_manager: DatabaseManager) -> DateRangeInfo:
             # Parse the dates to provide better context
             try:
                 from datetime import datetime
-                earliest_parsed = datetime.strptime(earliest.split()[0], "%m/%d/%y")
-                latest_parsed = datetime.strptime(latest.split()[0], "%m/%d/%y")
+                earliest_parsed = datetime.strptime(earliest.split()[0], "%Y-%m-%d")
+                latest_parsed = datetime.strptime(latest.split()[0], "%Y-%m-%d")
                 
                 # Calculate the actual date range
                 days_span = (latest_parsed - earliest_parsed).days + 1
@@ -210,9 +206,9 @@ def analyze_database_date_ranges(db_manager: DatabaseManager) -> str:
         # Extract month/year from database dates for comparison
         from datetime import datetime
         try:
-            # Parse database dates (format: "8/31/25 22:16")
-            db_earliest = datetime.strptime(earliest_date.split()[0], "%m/%d/%y")
-            db_latest = datetime.strptime(latest_date.split()[0], "%m/%d/%y")
+            # Parse database dates (format: "2025-08-31 22:16:00")
+            db_earliest = datetime.strptime(earliest_date.split()[0], "%Y-%m-%d")
+            db_latest = datetime.strptime(latest_date.split()[0], "%Y-%m-%d")
             
             # Determine what "last month" should actually mean based on data
             if db_earliest.month == now.month - 1 or (now.month == 1 and db_earliest.month == 12):
@@ -236,9 +232,9 @@ def analyze_database_date_ranges(db_manager: DatabaseManager) -> str:
 
 💡 INTELLIGENT TEMPORAL QUERY GUIDANCE:
 - The available data period is {earliest_date} to {latest_date}
-- IMPORTANT: Database dates are stored as TEXT in format "M/D/YY H:MM" (e.g., "9/5/25 18:06")
-- For temporal queries, use the available date range rather than strict calendar months
-- Use LIKE patterns for date filtering: started_at LIKE '9/%/25%' for September 2025
+- IMPORTANT: Database dates are stored as proper DATETIME in format "YYYY-MM-DD HH:MM:SS" (e.g., "2025-09-08 11:47:00")
+- For temporal queries, use standard SQLite date functions: date('now', '-30 days'), date('2025-09-01')
+- Use strftime for time analysis: strftime('%H', started_at) BETWEEN '05' AND '11' for morning
 - Be confident in your date interpretations and provide specific answers
 
 🎯 CRITICAL: When users ask about "September 2025" or "last month", clarify that the database only contains data from {earliest_date} to {latest_date}. 

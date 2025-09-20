@@ -65,7 +65,7 @@ export const Table: React.FC<TableProps> = React.memo(({ component }) => {
 
   return (
     <div className="table-container">
-      {title && <h3 className="table-title">{title}</h3>}
+      {title && <h3 className="table-title text-gray-900 font-semibold text-lg mb-4">{title}</h3>}
       
       {filterable && (
         <div className="table-controls">
@@ -74,26 +74,26 @@ export const Table: React.FC<TableProps> = React.memo(({ component }) => {
             placeholder="Filter table..."
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            className="table-filter"
+            className="table-filter px-3 py-2 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500"
           />
         </div>
       )}
       
       <div className="table-wrapper">
-        <table className="data-table">
+        <table className="data-table w-full border-collapse">
           <thead>
-            <tr>
+            <tr className="bg-gray-50">
               {columns.map((column) => (
                 <th
                   key={column.key}
                   onClick={() => handleSort(column.key)}
-                  className={`table-header ${sortable ? 'sortable' : ''} ${
-                    sortColumn === column.key ? `sorted-${sortDirection}` : ''
+                  className={`px-4 py-3 text-left text-sm font-medium text-gray-900 border-b border-gray-200 ${sortable ? 'cursor-pointer hover:bg-gray-100' : ''} ${
+                    sortColumn === column.key ? `bg-gray-100` : ''
                   }`}
                 >
                   {column.title}
                   {sortable && sortColumn === column.key && (
-                    <span className="sort-indicator">
+                    <span className="ml-1 text-gray-600">
                       {sortDirection === 'asc' ? ' ↑' : ' ↓'}
                     </span>
                   )}
@@ -103,9 +103,9 @@ export const Table: React.FC<TableProps> = React.memo(({ component }) => {
           </thead>
           <tbody>
             {paginatedRows.map((row, index) => (
-              <tr key={index} className="table-row">
+              <tr key={index} className="hover:bg-gray-50 border-b border-gray-100">
                 {columns.map((column) => (
-                  <td key={column.key} className="table-cell">
+                  <td key={column.key} className="px-4 py-3 text-sm text-gray-800">
                     {row[column.key]?.toString() || '-'}
                   </td>
                 ))}
@@ -116,21 +116,21 @@ export const Table: React.FC<TableProps> = React.memo(({ component }) => {
       </div>
       
       {pagination && totalPages > 1 && (
-        <div className="table-pagination">
+        <div className="table-pagination flex items-center justify-between mt-4 px-4">
           <button
             onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
             disabled={currentPage === 0}
-            className="pagination-button"
+            className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Previous
           </button>
-          <span className="pagination-info">
+          <span className="pagination-info text-sm text-gray-700">
             Page {currentPage + 1} of {totalPages}
           </span>
           <button
             onClick={() => setCurrentPage(prev => Math.min(totalPages - 1, prev + 1))}
             disabled={currentPage === totalPages - 1}
-            className="pagination-button"
+            className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Next
           </button>
@@ -254,7 +254,7 @@ export const Chart: React.FC<ChartProps> = React.memo(({ component }) => {
 
   return (
     <div className="chart-container">
-      {title && <h3 className="chart-title">{title}</h3>}
+      {title && <h3 className="chart-title text-gray-900 font-semibold text-lg mb-4">{title}</h3>}
       
       <svg width={chartWidth} height={chartHeight} className="chart-svg">
         <g transform={`translate(${margin.left}, ${margin.top})`}>
@@ -273,7 +273,7 @@ export const Chart: React.FC<ChartProps> = React.memo(({ component }) => {
               x={plotWidth / 2}
               y={plotHeight + 35}
               textAnchor="middle"
-              className="axis-label"
+              className="axis-label text-gray-700 text-sm"
             >
               {xAxisLabel}
             </text>
@@ -294,14 +294,14 @@ export const Chart: React.FC<ChartProps> = React.memo(({ component }) => {
       </svg>
       
       {showLegend && seriesData.length > 1 && (
-        <div className="chart-legend">
+        <div className="chart-legend flex flex-wrap gap-4 mt-4">
           {seriesData.map((series, index) => (
-            <div key={series.name} className="legend-item">
+            <div key={series.name} className="legend-item flex items-center gap-2">
               <div
-                className="legend-color"
+                className="legend-color w-4 h-4 rounded"
                 style={{ backgroundColor: colors[index] || `hsl(${index * 60}, 70%, 50%)` }}
               />
-              <span className="legend-label">{series.name}</span>
+              <span className="legend-label text-sm text-gray-700">{series.name}</span>
             </div>
           ))}
         </div>
@@ -326,30 +326,30 @@ export const Map: React.FC<MapProps> = React.memo(({ component }) => {
   // In practice, you would use react-leaflet and proper GeoJSON rendering
   return (
     <div className="map-container">
-      {title && <h3 className="map-title">{title}</h3>}
+      {title && <h3 className="map-title text-gray-900 font-semibold text-lg mb-4">{title}</h3>}
       
-      <div className="map-placeholder">
-        <div className="map-info">
-          <p>Map View</p>
-          <p>Center: [{center[0]}, {center[1]}]</p>
-          <p>Zoom: {zoom}</p>
-          <p>Features: {features.length}</p>
+      <div className="map-placeholder bg-gray-50 border border-gray-200 rounded-lg p-6">
+        <div className="map-info text-gray-800">
+          <p className="text-lg font-medium mb-2">Map View</p>
+          <p className="text-sm">Center: [{center[0]}, {center[1]}]</p>
+          <p className="text-sm">Zoom: {zoom}</p>
+          <p className="text-sm">Features: {features.length}</p>
         </div>
         
         {features.length > 0 && (
-          <div className="features-list">
-            <h4>Features:</h4>
+          <div className="features-list mt-4">
+            <h4 className="text-sm font-medium text-gray-900 mb-2">Features:</h4>
             {features.slice(0, 5).map((feature, index) => (
-              <div key={index} className="feature-item">
-                <span className="feature-type">{feature.geometry.type}</span>
+              <div key={index} className="feature-item text-sm text-gray-700 mb-1">
+                <span className="feature-type font-medium">{feature.geometry.type}</span>
                 {feature.properties && showPopups && (
-                  <span className="feature-props">
+                  <span className="feature-props ml-2">
                     {Object.keys(feature.properties).length} properties
                   </span>
                 )}
               </div>
             ))}
-            {features.length > 5 && <p>... and {features.length - 5} more</p>}
+            {features.length > 5 && <p className="text-sm text-gray-600 mt-2">... and {features.length - 5} more</p>}
           </div>
         )}
       </div>

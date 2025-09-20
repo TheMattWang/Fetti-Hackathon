@@ -1,5 +1,5 @@
 export type ChartType =
-  | "table" | "bar" | "line" | "area" | "scatter" | "hist" | "box" | "pie" | "funnel" | "choropleth";
+  | "table" | "bar" | "line" | "area" | "scatter" | "hist" | "box" | "pie" | "funnel" | "choropleth" | "text";
 
 export type FieldType = "quant" | "cat" | "time" | "geo" | "lat" | "lon";
 

@@ -18,7 +18,25 @@ class AgentBuilder:
             # Use absolute path to the rides.sqlite in project root
             import os
             project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-            db_uri = f"sqlite:///{os.path.join(project_root, 'rides.sqlite')}"
+            # Try multiple possible locations for the database
+            possible_paths = [
+                os.path.join(project_root, 'rides.sqlite'),
+                os.path.join(project_root, 'data', 'rides.sqlite'),
+                os.path.join(project_root, 'server', 'rides.sqlite'),
+                os.path.join(project_root, 'server', 'data', 'rides.sqlite')
+            ]
+            
+            db_path = None
+            for path in possible_paths:
+                if os.path.exists(path):
+                    db_path = path
+                    break
+            
+            if db_path is None:
+                raise FileNotFoundError(f"Could not find rides.sqlite in any of these locations: {possible_paths}")
+            
+            db_uri = f"sqlite:///{db_path}"
+            print(f"Using database: {db_uri}")
         
         self.db_manager = DatabaseManager(db_uri)
         self.llm = None

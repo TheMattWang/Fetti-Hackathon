@@ -21,9 +21,16 @@ import uvicorn
 
 # Import your organized agent with dynamic loading
 import os, sys
+
+# Add the server directory to the Python path to ensure proper imports
+server_dir = os.path.dirname(os.path.abspath(__file__))
+if server_dir not in sys.path:
+    sys.path.insert(0, server_dir)
+
 print("CWD:", os.getcwd())
 print("sys.path[:5]:", sys.path[:5])
 print("LISTDIR .:", os.listdir("."))
+print("Server dir:", server_dir)
 
 # Use lightweight agent wrapper to reduce bundle size
 def get_lightweight_agent():
@@ -418,7 +425,7 @@ async def process_query_async(message: str, request_id: str, session_id: str):
             
             try:
                 # Apply retry limits by setting a recursion limit
-                max_iterations = getattr(sql_agent, '_max_iterations', 3)
+                max_iterations = 3  # Default max iterations
                 logger.info(f"[{request_id}] Starting agent with max_iterations={max_iterations}")
                 
                 # Get conversation history for this session

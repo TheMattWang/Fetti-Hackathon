@@ -42,6 +42,9 @@ export default function VizRenderer({ plan, rows, showTable = false }: VizRender
   switch (plan.chart.type) {
     case 'table':
       return <TableView plan={plan} rows={rows} />;
+    case 'text':
+      // Text responses are handled in the main page component
+      return null;
     case 'bar':
       return <BarChartView plan={plan} rows={rows} />;
     case 'line':
@@ -60,7 +63,7 @@ export default function VizRenderer({ plan, rows, showTable = false }: VizRender
       return <FunnelView plan={plan} rows={rows} />;
     default:
       return (
-        <div className="p-8 text-center text-gray-500">
+        <div className="p-8 text-center text-gray-500 dark:text-gray-400">
           <p>Unsupported chart type: {plan.chart.type}</p>
         </div>
       );
