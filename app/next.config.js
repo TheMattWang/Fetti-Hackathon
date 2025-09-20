@@ -8,22 +8,26 @@ const nextConfig = {
   },
   // Force browserslist → caniuse-lite to the right file even in weird monorepo/hoist states
   webpack: (config) => {
-    config.resolve.alias['caniuse-lite/dist/unpacker/agents'] =
-      require.resolve('caniuse-lite/dist/unpacker/agents.js');
+    // Multiple alias strategies to ensure caniuse-lite resolution
+    const caniusePath = require.resolve('caniuse-lite/dist/unpacker/agents.js');
+    
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      'caniuse-lite/dist/unpacker/agents': caniusePath,
+      'caniuse-lite/dist/unpacker/agents.js': caniusePath,
+    };
+    
+    // Add fallback for any caniuse-lite resolution issues
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      'caniuse-lite/dist/unpacker/agents': caniusePath,
+    };
+    
     return config;
   },
   // Environment variables configuration
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
-  },
-  // Disable browserslist to avoid caniuse-lite issues
-  experimental: {
-    browsersListForSwc: false,
-  },
-  // Force specific browserslist config
-  browserslist: {
-    production: ['>0.2%', 'not dead', 'not op_mini all'],
-    development: ['last 1 chrome version', 'last 1 firefox version', 'last 1 safari version'],
   },
   // Headers for CORS and security
   async headers() {
