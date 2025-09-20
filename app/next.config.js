@@ -10,9 +10,14 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
   },
-  // Enable experimental features if needed
+  // Disable browserslist to avoid caniuse-lite issues
   experimental: {
-    // Add any experimental features here
+    browsersListForSwc: false,
+  },
+  // Force specific browserslist config
+  browserslist: {
+    production: ['>0.2%', 'not dead', 'not op_mini all'],
+    development: ['last 1 chrome version', 'last 1 firefox version', 'last 1 safari version'],
   },
   // Headers for CORS and security
   async headers() {
