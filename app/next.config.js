@@ -6,6 +6,12 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  // Force browserslist → caniuse-lite to the right file even in weird monorepo/hoist states
+  webpack: (config) => {
+    config.resolve.alias['caniuse-lite/dist/unpacker/agents'] =
+      require.resolve('caniuse-lite/dist/unpacker/agents.js');
+    return config;
+  },
   // Environment variables configuration
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
