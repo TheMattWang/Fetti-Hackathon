@@ -6,23 +6,9 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // Force browserslist → caniuse-lite to the right file even in weird monorepo/hoist states
   webpack: (config) => {
-    // Multiple alias strategies to ensure caniuse-lite resolution
-    const caniusePath = require.resolve('caniuse-lite/dist/unpacker/agents.js');
-    
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      'caniuse-lite/dist/unpacker/agents': caniusePath,
-      'caniuse-lite/dist/unpacker/agents.js': caniusePath,
-    };
-    
-    // Add fallback for any caniuse-lite resolution issues
-    config.resolve.fallback = {
-      ...config.resolve.fallback,
-      'caniuse-lite/dist/unpacker/agents': caniusePath,
-    };
-    
+    config.resolve.alias['caniuse-lite/dist/unpacker/agents'] =
+      require.resolve('caniuse-lite/dist/unpacker/agents.js');
     return config;
   },
   // Environment variables configuration

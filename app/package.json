@@ -9,12 +9,12 @@
     "start": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
-    "postinstall": "npx update-browserslist-db@latest --yes"
+    "postinstall": "[ -z \"$CI\" ] && npx update-browserslist-db@latest --yes || true"
   },
   "dependencies": {
     "@tanstack/react-table": "^8.10.0",
     "autoprefixer": "^10.4.0",
-    "caniuse-lite": "^1.0.30001743",
+    "caniuse-lite": "latest",
     "maplibre-gl": "^3.6.0",
     "next": "^14.0.0",
     "postcss": "^8.4.0",
@@ -36,5 +36,8 @@
   },
   "engines": {
     "node": ">=20 <23"
+  },
+  "overrides": {
+    "caniuse-lite": "latest"
   }
 }
