@@ -1,2 +1,27 @@
-# Don't ignore anything - we need all files
-# This file ensures Vercel includes everything
+# Ignore large files and directories that aren't needed for deployment
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.git/
+.mypy_cache/
+.pytest_cache/
+.hypothesis/
+.DS_Store
+*.egg-info/
+dist/
+build/
+*.egg
