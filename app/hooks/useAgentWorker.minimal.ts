@@ -67,6 +67,7 @@ export function useAgentWorker(options: UseAgentWorkerOptions): UseAgentWorkerRe
 
     try {
       console.log('Initializing Web Worker for agent communication...');
+      console.log('Backend endpoint:', endpoint);
       workerRef.current = new Worker('/agent-worker.js');
       console.log('Web Worker created successfully');
       
@@ -89,20 +90,36 @@ export function useAgentWorker(options: UseAgentWorkerOptions): UseAgentWorkerRe
             break;
             
           case MessageTypes.AGENT_RESPONSE:
-            if (data.patches) {
-              setState(prev => ({
-                ...prev,
-                uiSpec: { children: data.patches.map((p: any) => p.value) },
-                lastMessage: data.rawMessage || null,
-                isLoading: false,
-              }));
-            } else if (data.message) {
-              setState(prev => ({
-                ...prev,
-                lastMessage: data.message,
-                isLoading: false,
-              }));
+            console.log('Processing AGENT_RESPONSE:', data);
+            
+            // Extract message content from patches or direct message
+            let messageContent = '';
+            
+            if (data.patches && Array.isArray(data.patches)) {
+              // Look for message content in patches
+              for (const patch of data.patches) {
+                if (patch.op === 'append' && patch.value && patch.value.data && patch.value.data.rows) {
+                  const firstRow = patch.value.data.rows[0];
+                  if (firstRow) {
+                    messageContent = firstRow.message || firstRow.response || JSON.stringify(firstRow);
+                    break;
+                  }
+                }
+              }
             }
+            
+            // Fallback to direct message
+            if (!messageContent) {
+              messageContent = data.message || '';
+            }
+            
+            console.log('Extracted message content:', messageContent);
+            
+            setState(prev => ({
+              ...prev,
+              lastMessage: messageContent,
+              isLoading: false,
+            }));
             break;
             
           case MessageTypes.ERROR:

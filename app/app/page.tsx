@@ -1,9 +1,35 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { VizPayload } from '@/types/viz';
-import VizRenderer from '@/components/VizRenderer.simple';
+// import { VizPayload } from '@/types/viz';
+// import VizRenderer from '@/components/VizRenderer.simple';
+// import ConnectionStatus from '@/components/ConnectionStatus';
 // import ReactMarkdown from 'react-markdown';
+
+// Simple markdown renderer to avoid build issues
+const SimpleMarkdown = ({ children }: { children: string }) => {
+  // Basic markdown parsing for common patterns
+  const parseMarkdown = (text: string) => {
+    return text
+      // Bold text
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      // Italic text
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      // Code blocks
+      .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+      // Inline code
+      .replace(/`(.*?)`/g, '<code>$1</code>')
+      // Line breaks
+      .replace(/\n/g, '<br/>');
+  };
+
+  return (
+    <div 
+      className="prose prose-sm dark:prose-invert max-w-none"
+      dangerouslySetInnerHTML={{ __html: parseMarkdown(children) }}
+    />
+  );
+};
 
 // Import the agent streaming hook
 import { useAgentWorker } from '@/hooks/useAgentWorker.minimal';
@@ -13,7 +39,6 @@ interface Message {
   type: 'user' | 'agent';
   content: string;
   timestamp: Date;
-  data?: VizPayload;
 }
 
 export default function Home() {
@@ -22,14 +47,14 @@ export default function Home() {
     {
       id: '1',
       type: 'agent',
-      content: "Hello! I'm your product management assistant. I can help you analyze metrics, generate insights, and visualize data. What would you like to explore today?",
+      content: "🚀 **Fetti PM Assistant** is connecting to the SQL agent...\n\nI can help you analyze ride-sharing data from Austin, Texas. Once connected, you can ask me about:\n\n**📊 Trip Analytics:**\n• \"How many trips happened last week?\"\n• \"What are the busiest hours for rides?\"\n• \"Show me trip volume by day of week\"\n\n**📍 Location Insights:**\n• \"What are the most popular pickup locations?\"\n• \"Show me trips to Moody Center\"\n• \"Which areas have the highest dropoff rates?\"\n\n**👥 User Behavior:**\n• \"How many unique users do we have?\"\n• \"What's the average trip distance?\"\n• \"Show me user activity patterns\"\n\n**🗺️ Geographic Analysis:**\n• \"Create a map of trip destinations\"\n• \"Show me trips in downtown Austin\"\n• \"Analyze trips by neighborhood\"\n\nWhat would you like to explore first?",
       timestamp: new Date()
     }
   ]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showTable, setShowTable] = useState(false);
-  const [showPlan, setShowPlan] = useState(false);
+  // const [showTable, setShowTable] = useState(false);
+  // const [showPlan, setShowPlan] = useState(false);
   const [showConnectionToast, setShowConnectionToast] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const currentQueryRef = useRef<string>('');
@@ -48,10 +73,52 @@ export default function Home() {
     isConnected,
     isLoading: agentLoading,
     error: agentError,
+    lastMessage,
     sendMessage,
     reconnect,
     clearErrors,
   } = agentStream;
+
+  // Debug logging for agent responses
+  useEffect(() => {
+    console.log('Agent stream state changed:', {
+      uiSpec,
+      lastMessage,
+      agentLoading,
+      agentError,
+      isConnected
+    });
+  }, [uiSpec, lastMessage, agentLoading, agentError, isConnected]);
+
+  // Handle connection status changes
+  useEffect(() => {
+    if (isConnected && messages.length === 1 && messages[0].content.includes('connecting')) {
+      // Replace the initial connecting message with a connected message
+      setMessages([{
+        id: '1',
+        type: 'agent',
+        content: "✅ **Connected to SQL Agent!**\n\nI'm ready to help you analyze ride-sharing data. I can query the database, create visualizations, and provide insights about:\n\n• Trip patterns and trends\n• User behavior analysis\n• Geographic data and locations\n• Time-based analytics\n• Performance metrics\n\nWhat would you like to explore first?",
+        timestamp: new Date()
+      }]);
+    }
+  }, [isConnected, messages]);
+
+  // Handle agent responses
+  useEffect(() => {
+    if (lastMessage && !agentLoading) {
+      console.log('Processing agent response:', lastMessage);
+      
+      const agentMessage: Message = {
+        id: Date.now().toString(),
+        type: 'agent',
+        content: lastMessage,
+        timestamp: new Date(),
+      };
+      
+      setMessages(prev => [...prev, agentMessage]);
+      setLoading(false);
+    }
+  }, [lastMessage, agentLoading]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -151,27 +218,11 @@ export default function Home() {
                     ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white ml-auto' 
                     : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white'
                 }`}>
-                  {message.type === 'agent' && message.data ? (
-                    // Render agent message with data
-                    <>
-                      {message.data.plan.narrative && (
-                        <div className="mb-4">
-                          <p className="text-sm leading-relaxed">{message.data.plan.narrative}</p>
-                        </div>
-                      )}
-
-                      {message.data.rows && message.data.rows.length > 0 && message.data.plan.dataset !== "text_response" && (
-                        <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
-                          <VizRenderer 
-                            plan={message.data.plan} 
-                            rows={message.data.rows} 
-                            showTable={showTable}
-                          />
-                        </div>
-                      )}
-                    </>
+                  {message.type === 'agent' ? (
+                    // Render agent message with markdown support
+                    <SimpleMarkdown>{message.content}</SimpleMarkdown>
                   ) : (
-                    // Render simple text message
+                    // Render user message as plain text
                     <p className="text-sm leading-relaxed">{message.content}</p>
                   )}
                 </div>

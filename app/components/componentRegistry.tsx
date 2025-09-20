@@ -1,5 +1,5 @@
 import React from 'react';
-import { TableComponent, ChartComponent, MapComponent } from '../lib/schemas';
+import { TableComponent, ChartComponent, MapComponent } from '../lib/schemas.simple';
 
 // Table Component
 interface TableProps {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Component, UISpec } from '../lib/schemas';
+import { Component, UISpec } from '../lib/schemas.simple';
 // import { componentRegistry, ComponentType } from './componentRegistry';
 
 interface RenderSpecProps {

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { UISpec, PatchError, PatchRequest } from '../lib/schemas';
+import { UISpec, PatchError, PatchRequest } from '../lib/schemas.simple';
 import { initialUISpec, validateAndApplyPatches, generateRequestId } from '../lib/patch';
 import { API_CONFIG } from '../lib/config';
 

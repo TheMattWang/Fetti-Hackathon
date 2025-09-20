@@ -63,13 +63,33 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000", 
         "http://localhost:3001",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
         "https://*.vercel.app",  # Vercel frontend deployments
         "https://fetti-hackathon.vercel.app",  # Your specific Vercel domain
         "https://fetti-hackathon-git-main-mattwang.vercel.app",  # Vercel preview URLs
+        # Add your production frontend domain here
+        "https://your-frontend-domain.com",
     ],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "OPTIONS", "HEAD"],
+    allow_headers=[
+        "Accept",
+        "Accept-Language",
+        "Content-Language",
+        "Content-Type",
+        "Authorization",
+        "X-Requested-With",
+        "Cache-Control",
+        "Pragma",
+        "Date",
+        "X-Api-Version",
+        "X-CSRF-Token",
+        "Access-Control-Request-Method",
+        "Access-Control-Request-Headers",
+    ],
+    expose_headers=["*"],
+    max_age=3600,  # Cache preflight for 1 hour
 )
 
 # Global lightweight agent instance
@@ -379,7 +399,11 @@ async def agent_stream(request: Request):
         headers={
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
-            "X-Accel-Buffering": "no"  # Disable nginx buffering
+            "X-Accel-Buffering": "no",  # Disable nginx buffering
+            "Access-Control-Allow-Origin": "*",  # Allow all origins for SSE
+            "Access-Control-Allow-Credentials": "true",
+            "Access-Control-Allow-Headers": "Cache-Control",
+            "Access-Control-Expose-Headers": "*",
         }
     )
 

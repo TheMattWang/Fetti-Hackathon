@@ -161,11 +161,29 @@ function connect() {
         log(`Received message: ${rawData.substring(0, 200)}...`);
         log(`Message has patches: ${!!data.patches}, has message: ${!!data.message}`);
         
-        // Forward agent response to main thread
-        sendToMain(MessageTypes.AGENT_RESPONSE, {
-          ...data,
-          rawMessage: rawData
-        });
+        // Check if this is the initial connection message (has message, clientId, but no patches or heartbeat)
+        if (data.message && data.clientId && !data.patches && !data.heartbeat) {
+          log('Received initial connection message, forwarding as agent response');
+          sendToMain(MessageTypes.AGENT_RESPONSE, {
+            message: data.message, // Just the message content, not the full JSON
+            rawMessage: rawData
+          });
+        } else if (data.patches) {
+          // Forward agent response with patches to main thread
+          sendToMain(MessageTypes.AGENT_RESPONSE, {
+            ...data,
+            rawMessage: rawData
+          });
+        } else if (data.heartbeat) {
+          // Ignore heartbeat messages - don't forward them
+          log('Received heartbeat, ignoring');
+        } else {
+          // Forward other agent responses to main thread
+          sendToMain(MessageTypes.AGENT_RESPONSE, {
+            ...data,
+            rawMessage: rawData
+          });
+        }
         
       } catch (error) {
         log(`Error parsing message: ${error.message}`, 'error');

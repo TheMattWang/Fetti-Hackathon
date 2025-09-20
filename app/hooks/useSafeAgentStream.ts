@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { UISpec, PatchError } from '../lib/schemas';
+import { UISpec, PatchError } from '../lib/schemas.simple';
 import { initialUISpec, validateAndApplyPatches, generateRequestId } from '../lib/patch';
 
 interface UseSafeAgentStreamOptions {
