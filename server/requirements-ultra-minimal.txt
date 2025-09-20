@@ -1,0 +1,22 @@
+# Ultra-minimal requirements - only absolute essentials
+# This should be under 50MB total
+
+# Core web framework (lightweight)
+fastapi==0.116.2
+uvicorn==0.35.0
+
+# Essential HTTP and JSON
+httpx==0.28.1
+orjson==3.11.3
+
+# Basic data validation
+pydantic==2.11.9
+
+# Environment variables
+python-dotenv==1.1.1
+
+# Basic database (SQLite is built-in, but we need SQLAlchemy for ORM)
+SQLAlchemy==2.0.43
+
+# OpenAI client (minimal)
+openai==1.108.0

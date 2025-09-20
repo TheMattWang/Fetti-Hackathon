@@ -50,12 +50,17 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS configuration - restricted to known app origins
+# CORS configuration - allow frontend origins
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001"],  # React frontend on multiple ports
+    allow_origins=[
+        "http://localhost:3000", 
+        "http://localhost:3001",
+        "https://*.vercel.app",  # Vercel frontend deployments
+        "https://fetti-hackathon.vercel.app",  # Your specific Vercel domain
+    ],
     allow_credentials=True,
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
 
