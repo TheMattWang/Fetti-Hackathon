@@ -58,6 +58,7 @@ app.add_middleware(
         "http://localhost:3001",
         "https://*.vercel.app",  # Vercel frontend deployments
         "https://fetti-hackathon.vercel.app",  # Your specific Vercel domain
+        "https://fetti-hackathon-git-main-mattwang.vercel.app",  # Vercel preview URLs
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],

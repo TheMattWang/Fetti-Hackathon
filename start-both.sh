@@ -64,10 +64,19 @@ trap cleanup SIGINT SIGTERM
 # Start backend server
 echo "🔥 Starting FastAPI backend server..."
 PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
-cd "$PROJECT_ROOT"
-source venv/bin/activate
-cd server
-python main.py &
+cd "$PROJECT_ROOT/server"
+
+# Check if virtual environment exists
+if [ -d "../venv" ]; then
+    echo "📦 Activating virtual environment..."
+    source ../venv/bin/activate
+else
+    echo "⚠️  No virtual environment found, using system Python"
+fi
+
+# Start the FastAPI server
+echo "🚀 Starting FastAPI server on port 9000..."
+uvicorn api.main:app --host 0.0.0.0 --port 9000 --reload &
 BACKEND_PID=$!
 
 # Give backend time to start
@@ -87,7 +96,19 @@ echo "🌐 Starting React frontend server..."
 cd "$PROJECT_ROOT/app"
 echo "Current directory: $(pwd)"
 echo "Checking package.json..."
-ls package.json
+
+if [ ! -f "package.json" ]; then
+    echo "❌ package.json not found in app directory"
+    echo "Available files:"
+    ls -la
+    kill $BACKEND_PID 2>/dev/null
+    exit 1
+fi
+
+echo "📦 Installing dependencies if needed..."
+npm install
+
+echo "🚀 Starting Next.js development server..."
 npm run dev &
 FRONTEND_PID=$!
 
@@ -96,11 +117,15 @@ sleep 3
 
 echo "✅ Frontend server running on http://localhost:3000"
 echo ""
-echo "🎉 SQL Agent System is ready!"
-echo "📱 Open your browser to: http://localhost:3000"
-echo "🔍 Backend API: http://localhost:9000"
+echo "🎉 Hybrid SQL Agent System is ready!"
+echo "📱 Frontend (Next.js): http://localhost:3000"
+echo "🔍 Backend (FastAPI): http://localhost:9000"
 echo "📊 Health check: http://localhost:9000/health"
+echo "🌐 API endpoints:"
+echo "   - Stream: http://localhost:9000/api/agent/stream"
+echo "   - Query: http://localhost:9000/api/agent/query"
 echo ""
+echo "💡 The frontend will connect to the local backend automatically"
 echo "Press Ctrl+C to stop both servers"
 
 # Wait for processes
