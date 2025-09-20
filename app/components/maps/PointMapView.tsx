@@ -2,7 +2,7 @@
 
 import Map, { Source, Layer } from 'react-map-gl/maplibre';
 import { VizPlan } from '@/types/viz';
-import { getFieldByName, getLatLonFields, formatValue } from '@/lib/fieldAccess';
+import { getFieldByName, getLatLonFields, formatValue } from '@/lib';
 
 interface PointMapViewProps {
   plan: VizPlan;

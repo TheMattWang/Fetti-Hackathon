@@ -2,8 +2,7 @@
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { VizPlan } from '@/types/viz';
-import { getFieldByName, formatValue } from '@/lib/fieldAccess';
-import { calculateHistogramBins } from '@/lib/stats';
+import { getFieldByName, formatValue, calculateHistogramBins } from '@/lib';
 
 interface HistViewProps {
   plan: VizPlan;

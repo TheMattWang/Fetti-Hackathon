@@ -6,11 +6,6 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  webpack: (config) => {
-    config.resolve.alias['caniuse-lite/dist/unpacker/agents'] =
-      require.resolve('caniuse-lite/dist/unpacker/agents.js');
-    return config;
-  },
   // Environment variables configuration
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,

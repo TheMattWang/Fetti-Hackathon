@@ -11,7 +11,7 @@ import {
   isCategoricalField,
   getCategoricalFields,
   getNumericFields 
-} from '@/lib/fieldAccess';
+} from '@/lib';
 
 interface EnhancedMapViewProps {
   plan: VizPlan;

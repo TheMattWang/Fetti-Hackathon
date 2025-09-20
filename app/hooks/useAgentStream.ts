@@ -129,7 +129,12 @@ export function useAgentStream(options: UseAgentStreamOptions): UseAgentStreamRe
       // Handle incoming patches
       eventSource.onmessage = (event) => {
         try {
-          const data = JSON.parse(event.data);
+          const rawData = event.data;
+          if (!rawData || !rawData.trim()) {
+            console.warn('Received empty event data');
+            return;
+          }
+          const data = JSON.parse(rawData);
           console.log('Received agent data:', data);
 
           // Reset timeout on message

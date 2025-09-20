@@ -2,7 +2,7 @@
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { VizPlan } from '@/types/viz';
-import { getFieldByName, formatValue } from '@/lib/fieldAccess';
+import { getFieldByName, formatValue } from '@/lib';
 import BarChartView from './BarChartView';
 
 interface PieViewProps {

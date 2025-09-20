@@ -10,7 +10,7 @@ import {
   SortingState,
 } from '@tanstack/react-table';
 import { VizPlan } from '@/types/viz';
-import { formatValue } from '@/lib/fieldAccess';
+import { formatValue } from '@/lib';
 
 interface TableViewProps {
   plan: VizPlan;

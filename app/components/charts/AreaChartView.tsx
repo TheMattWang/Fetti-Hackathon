@@ -2,7 +2,7 @@
 
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { VizPlan } from '@/types/viz';
-import { getFieldByName, formatValue } from '@/lib/fieldAccess';
+import { getFieldByName, formatValue } from '@/lib';
 
 interface AreaChartViewProps {
   plan: VizPlan;

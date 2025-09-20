@@ -10,7 +10,7 @@ export default function DemoTestCases({ onDataChange }: DemoTestCasesProps) {
   const loadMoodyCenterDemo = () => {
     const testData: VizPayload = {
       plan: {
-        intent: "analyze",
+        intent: "describe",
         question: "How many groups went to Moody Center last month?",
         dataset: "trips",
         sql: "SELECT group_size, COUNT(*) as trip_count FROM trips WHERE dropoff_address LIKE '%Moody Center%' AND started_at >= '2024-08-01' AND started_at < '2024-09-01' GROUP BY group_size ORDER BY group_size",

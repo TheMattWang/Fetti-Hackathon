@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
+    "check:json": "node scripts/validate-json.js",
     "postinstall": "[ -z \"$CI\" ] && npx update-browserslist-db@latest --yes || true"
   },
   "dependencies": {

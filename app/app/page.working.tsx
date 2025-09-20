@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { VizPayload } from '@/types/viz';
-import VizRenderer from '@/components/VizRenderer.simple';
-// import ReactMarkdown from 'react-markdown';
+import VizRenderer from '@/components/VizRenderer';
+import ReactMarkdown from 'react-markdown';
 
 // Import the agent streaming hook
-import { useAgentWorker } from '@/hooks/useAgentWorker.minimal';
+import { useAgentWorker } from '@/hooks/useAgentWorker';
 
 interface Message {
   id: string;
@@ -156,7 +156,13 @@ export default function Home() {
                     <>
                       {message.data.plan.narrative && (
                         <div className="mb-4">
-                          <p className="text-sm leading-relaxed">{message.data.plan.narrative}</p>
+                          {message.data.plan.dataset === "text_response" ? (
+                            <div className="text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none">
+                              <ReactMarkdown>{message.data.plan.narrative}</ReactMarkdown>
+                            </div>
+                          ) : (
+                            <p className="text-sm leading-relaxed">{message.data.plan.narrative}</p>
+                          )}
                         </div>
                       )}
 

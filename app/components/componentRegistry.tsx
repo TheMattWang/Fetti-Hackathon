@@ -154,17 +154,17 @@ export const Chart: React.FC<ChartProps> = React.memo(({ component }) => {
 
   // Group points by series for multi-series charts
   const seriesData = React.useMemo(() => {
-    const groups = new Map<string, typeof points>();
+    const groups: Record<string, Array<{ x: string | number; y: number; series?: string }>> = {};
     
     points.forEach(point => {
       const series = point.series || 'default';
-      if (!groups.has(series)) {
-        groups.set(series, []);
+      if (!groups[series]) {
+        groups[series] = [];
       }
-      groups.get(series)!.push(point);
+      groups[series].push(point);
     });
     
-    return Array.from(groups.entries()).map(([name, data]) => ({ name, data }));
+    return Object.entries(groups).map(([name, data]) => ({ name, data }));
   }, [points]);
 
   // Calculate chart dimensions and scales
@@ -188,10 +188,10 @@ export const Chart: React.FC<ChartProps> = React.memo(({ component }) => {
   const renderChart = () => {
     switch (kind) {
       case 'line':
-        return seriesData.map((series, seriesIndex) => {
+        return seriesData.map((series: any, seriesIndex) => {
           const color = colors[seriesIndex] || `hsl(${seriesIndex * 60}, 70%, 50%)`;
           const pathData = series.data
-            .map((point, index) => {
+            .map((point: any, index: number) => {
               const x = typeof point.x === 'number' ? xScale(point.x) : index * (plotWidth / series.data.length);
               const y = yScale(point.y);
               return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
@@ -233,7 +233,7 @@ export const Chart: React.FC<ChartProps> = React.memo(({ component }) => {
         return points.map((point, index) => {
           const x = typeof point.x === 'number' ? xScale(point.x) : index * (plotWidth / points.length);
           const y = yScale(point.y);
-          const seriesIndex = seriesData.findIndex(s => s.name === (point.series || 'default'));
+          const seriesIndex = seriesData.findIndex((s: any) => s.name === (point.series || 'default'));
           const color = colors[seriesIndex] || `hsl(${seriesIndex * 60}, 70%, 50%)`;
 
           return (
@@ -295,7 +295,7 @@ export const Chart: React.FC<ChartProps> = React.memo(({ component }) => {
       
       {showLegend && seriesData.length > 1 && (
         <div className="chart-legend flex flex-wrap gap-4 mt-4">
-          {seriesData.map((series, index) => (
+          {seriesData.map((series: any, index) => (
             <div key={series.name} className="legend-item flex items-center gap-2">
               <div
                 className="legend-color w-4 h-4 rounded"

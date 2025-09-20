@@ -2,7 +2,7 @@
 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { VizPlan } from '@/types/viz';
-import { getFieldByName, formatValue } from '@/lib/fieldAccess';
+import { getFieldByName, formatValue } from '@/lib';
 
 interface LineChartViewProps {
   plan: VizPlan;

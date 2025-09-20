@@ -13,7 +13,7 @@ import FunnelView from './charts/FunnelView';
 import ChoroplethView from './maps/ChoroplethView';
 import PointMapView from './maps/PointMapView';
 import EnhancedMapView from './maps/EnhancedMapView';
-import { getLatLonFields, getGeoField } from '@/lib/fieldAccess';
+import { getLatLonFields, getGeoField } from '@/lib';
 
 interface VizRendererProps {
   plan: VizPlan;

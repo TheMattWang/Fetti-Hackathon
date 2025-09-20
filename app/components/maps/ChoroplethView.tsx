@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Map, { Source, Layer } from 'react-map-gl/maplibre';
 import { VizPlan } from '@/types/viz';
-import { getFieldByName, getGeoField, formatValue } from '@/lib/fieldAccess';
+import { getFieldByName, getGeoField, formatValue } from '@/lib';
 
 interface ChoroplethViewProps {
   plan: VizPlan;

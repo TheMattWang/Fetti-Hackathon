@@ -152,14 +152,19 @@ function connect() {
     
     eventSource.onmessage = (event) => {
       try {
-        const data = JSON.parse(event.data);
-        log(`Received message: ${event.data.substring(0, 200)}...`);
+        const rawData = event.data;
+        if (!rawData || !rawData.trim()) {
+          log('Received empty event data');
+          return;
+        }
+        const data = JSON.parse(rawData);
+        log(`Received message: ${rawData.substring(0, 200)}...`);
         log(`Message has patches: ${!!data.patches}, has message: ${!!data.message}`);
         
         // Forward agent response to main thread
         sendToMain(MessageTypes.AGENT_RESPONSE, {
           ...data,
-          rawMessage: event.data
+          rawMessage: rawData
         });
         
       } catch (error) {

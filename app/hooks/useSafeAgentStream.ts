@@ -147,7 +147,12 @@ export function useSafeAgentStream(options: UseSafeAgentStreamOptions): UseSafeA
         if (!mountedRef.current) return;
         
         try {
-          const data = JSON.parse(event.data);
+          const rawData = event.data;
+          if (!rawData || !rawData.trim()) {
+            console.warn('Received empty event data');
+            return;
+          }
+          const data = JSON.parse(rawData);
           console.log('Received agent data:', data);
 
           // Reset timeout on message

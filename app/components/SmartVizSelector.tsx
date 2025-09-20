@@ -8,7 +8,7 @@ import {
   getTimeFields,
   getAddressFields,
   getCountFields 
-} from '@/lib/fieldAccess';
+} from '@/lib';
 
 interface SmartVizSelectorProps {
   plan: VizPlan;

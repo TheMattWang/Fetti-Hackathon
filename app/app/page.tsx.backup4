@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { VizPayload } from '@/types/viz';
-import VizRenderer from '@/components/VizRenderer.simple';
-// import ReactMarkdown from 'react-markdown';
+import VizRenderer from '@/components/VizRenderer';
+import ReactMarkdown from 'react-markdown';
 
 // Import the agent streaming hook
-import { useAgentWorker } from '@/hooks/useAgentWorker.minimal';
+import { useAgentWorker } from '@/hooks/useAgentWorker';
 
 interface Message {
   id: string;
@@ -53,6 +53,216 @@ export default function Home() {
     clearErrors,
   } = agentStream;
 
+  // Handle agent responses
+  useEffect(() => {
+    console.log('Processing agent response:', { uiSpec, lastMessage: agentStream.lastMessage });
+    
+    // Handle text responses from LLM
+    if (agentStream.lastMessage && !uiSpec.children?.length) {
+      console.log('Processing text message:', agentStream.lastMessage);
+      
+      // Create a simple text display payload with the message as narrative
+      const vizPayload: VizPayload = {
+        plan: {
+          intent: "describe",
+          question: currentQueryRef.current,
+          dataset: "text_response",
+          sql: "N/A - Text response",
+          fields: [],
+          chart: {
+            type: "text" as const,
+            tooltip: []
+          },
+          narrative: agentStream.lastMessage,
+          quality: { rowCount: 0, rowCountCapHit: false, warnings: [] }
+        },
+        rows: []
+      };
+      // Add this response as a new message to chat history
+      const agentMessage: Message = {
+        id: Date.now().toString(),
+        type: 'agent',
+        content: agentStream.lastMessage,
+        timestamp: new Date(),
+        data: vizPayload
+      };
+      setMessages(prev => [...prev, agentMessage]);
+      setLoading(false);
+      return;
+    }
+
+    // Handle text responses that might have uiSpec children but are still text-only
+    if (agentStream.lastMessage && uiSpec.children?.length > 0) {
+      console.log('Processing text message with uiSpec children:', agentStream.lastMessage);
+      
+      // Check if this is actually a text response by looking at the content
+      const latestComponent = uiSpec.children[uiSpec.children.length - 1];
+      if (latestComponent && latestComponent.type === 'Table' && 
+          latestComponent.data && latestComponent.data.rows && 
+          latestComponent.data.rows.length === 1 && 
+          latestComponent.data.columns && latestComponent.data.columns.length === 1 &&
+          (latestComponent.data.columns[0].key === 'response' || latestComponent.data.columns[0].key === 'message')) {
+        
+        console.log('Detected text response in table format, converting to text response');
+        
+        // Extract the actual message content from the table data
+        const messageContent = latestComponent.data.rows[0][latestComponent.data.columns[0].key];
+        console.log('Extracted message content:', messageContent);
+        
+        const vizPayload: VizPayload = {
+          plan: {
+            intent: "describe",
+            question: currentQueryRef.current,
+            dataset: "text_response",
+            sql: "N/A - Text response",
+            fields: [],
+            chart: {
+              type: "text" as const,
+              tooltip: []
+            },
+            narrative: messageContent,
+            quality: { rowCount: 0, rowCountCapHit: false, warnings: [] }
+          },
+          rows: []
+        };
+        // Add this response as a new message to chat history
+        const agentMessage: Message = {
+          id: Date.now().toString(),
+          type: 'agent',
+          content: messageContent,
+          timestamp: new Date(),
+          data: vizPayload
+        };
+        setMessages(prev => [...prev, agentMessage]);
+        setLoading(false);
+        return;
+      }
+    }
+
+    // Handle component responses (only if we haven't already processed a text response)
+    if (uiSpec.children && uiSpec.children.length > 0 && !agentStream.lastMessage) {
+      console.log('Processing components:', uiSpec.children);
+      
+      // Convert agent response to VizPayload format
+      const latestComponent = uiSpec.children[uiSpec.children.length - 1];
+      console.log('Latest component:', latestComponent);
+      
+      if (latestComponent && latestComponent.type === 'Table') {
+        const tableData = latestComponent.data;
+        console.log('Table data:', tableData);
+        
+        // The narrative will be displayed within the visualization chat message
+        
+        if (tableData && tableData.rows && tableData.rows.length > 0) {
+          // Determine the best chart type based on data
+          const numericColumns = tableData.columns.filter((col: any) => 
+            col.dataType === 'number' || 
+            tableData.rows.some((row: any) => typeof row[col.key] === 'number')
+          );
+          
+          const categoricalColumns = tableData.columns.filter((col: any) => 
+            col.dataType === 'string' || 
+            tableData.rows.some((row: any) => typeof row[col.key] === 'string')
+          );
+
+          // Choose appropriate chart type
+          let chartType: any = "table";
+          let xField = tableData.columns[0]?.key;
+          let yField = tableData.columns[1]?.key;
+
+          if (numericColumns.length >= 2) {
+            chartType = "bar";
+            xField = categoricalColumns[0]?.key || tableData.columns[0]?.key;
+            yField = numericColumns[0]?.key;
+          } else if (numericColumns.length === 1 && categoricalColumns.length >= 1) {
+            chartType = "bar";
+            xField = categoricalColumns[0]?.key;
+            yField = numericColumns[0]?.key;
+          }
+
+          const vizPayload: VizPayload = {
+            plan: {
+              intent: "describe",
+              question: currentQueryRef.current,
+              dataset: "agent_result",
+              sql: "SELECT * FROM agent_result",
+              fields: tableData.columns.map((col: any) => {
+                // Better field type detection
+                const sampleValue = tableData.rows[0]?.[col.key];
+                let fieldType: any = 'cat';
+                
+                if (col.dataType === 'number' || typeof sampleValue === 'number') {
+                  fieldType = 'quant';
+                } else if (col.dataType === 'date' || (typeof sampleValue === 'string' && 
+                  (sampleValue.includes('-') || sampleValue.includes('/')))) {
+                  fieldType = 'time';
+                } else if (col.key.toLowerCase().includes('lat')) {
+                  fieldType = 'lat';
+                } else if (col.key.toLowerCase().includes('lon') || col.key.toLowerCase().includes('lng')) {
+                  fieldType = 'lon';
+                }
+                
+                return {
+                  name: col.key,
+                  type: fieldType
+                };
+              }),
+              chart: {
+                type: chartType,
+                x: xField,
+                y: yField,
+                tooltip: tableData.columns.map((col: any) => col.key)
+              },
+              narrative: `Found ${tableData.rows.length} record${tableData.rows.length !== 1 ? 's' : ''}. ${tableData.rows.length > 0 ? 'Data displayed below.' : 'No data to display.'}`,
+              quality: { rowCount: tableData.rows.length, rowCountCapHit: false, warnings: [] }
+            },
+            rows: tableData.rows
+          };
+          console.log('Created VizPayload:', vizPayload);
+          
+          // Add this response as a new message to chat history
+          const agentMessage: Message = {
+            id: Date.now().toString(),
+            type: 'agent',
+            content: `Found ${tableData.rows.length} record${tableData.rows.length !== 1 ? 's' : ''}. ${tableData.rows.length > 0 ? 'Data displayed below.' : 'No data to display.'}`,
+            timestamp: new Date(),
+            data: vizPayload
+          };
+          setMessages(prev => [...prev, agentMessage]);
+          setLoading(false);
+        } else {
+          // Handle empty table case
+          const vizPayload: VizPayload = {
+            plan: {
+              intent: "describe",
+              question: currentQueryRef.current,
+              dataset: "agent_result",
+              sql: "SELECT * FROM agent_result",
+              fields: [],
+              chart: {
+                type: "table",
+                tooltip: []
+              },
+              narrative: "Query executed successfully but returned no results.",
+              quality: { rowCount: 0, rowCountCapHit: false, warnings: [] }
+            },
+            rows: []
+          };
+          // Add this response as a new message to chat history
+          const agentMessage: Message = {
+            id: Date.now().toString(),
+            type: 'agent',
+            content: "Query executed successfully but returned no results.",
+            timestamp: new Date(),
+            data: vizPayload
+          };
+          setMessages(prev => [...prev, agentMessage]);
+          setLoading(false);
+        }
+      }
+    }
+  }, [uiSpec, agentStream.lastMessage]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim() || loading || agentLoading) return;
@@ -83,6 +293,7 @@ export default function Home() {
     // Send message to agent
     sendMessage(currentQuery);
   };
+
 
   return (
     <div className={`min-h-screen flex flex-col ${isDarkMode ? 'dark bg-gray-900' : 'bg-gray-50'}`}>
@@ -156,7 +367,13 @@ export default function Home() {
                     <>
                       {message.data.plan.narrative && (
                         <div className="mb-4">
-                          <p className="text-sm leading-relaxed">{message.data.plan.narrative}</p>
+                          {message.data.plan.dataset === "text_response" ? (
+                            <div className="text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none">
+                              <ReactMarkdown>{message.data.plan.narrative}</ReactMarkdown>
+                            </div>
+                          ) : (
+                            <p className="text-sm leading-relaxed">{message.data.plan.narrative}</p>
+                          )}
                         </div>
                       )}
 
@@ -176,6 +393,61 @@ export default function Home() {
                   )}
                 </div>
                 
+                {/* Data controls for agent messages with data */}
+                {message.type === 'agent' && message.data && message.data.rows && message.data.rows.length > 0 && message.data.plan.dataset !== "text_response" && (
+                  <div className="flex gap-2 mt-2 justify-start">
+                    <button
+                      onClick={() => setShowTable(!showTable)}
+                      className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                        showTable
+                          ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      Table
+                    </button>
+                    <button
+                      className="px-2 py-1 rounded text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                      onClick={() => {
+                        if (message.data) {
+                          const csvContent = message.data.rows.map(row => 
+                            Object.values(row).join(',')
+                          ).join('\n');
+                          const blob = new Blob([csvContent], { type: 'text/csv' });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = 'insights.csv';
+                          a.click();
+                          URL.revokeObjectURL(url);
+                        }
+                      }}
+                    >
+                      CSV
+                    </button>
+                    <button
+                      onClick={() => setShowPlan(!showPlan)}
+                      className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                        showPlan
+                          ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      Plan
+                    </button>
+                  </div>
+                )}
+
+                {/* Plan drawer for agent messages */}
+                {showPlan && message.type === 'agent' && message.data && message.data.plan.dataset !== "text_response" && (
+                  <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Analysis Plan</h4>
+                    <pre className="bg-gray-100 dark:bg-gray-800 p-2 rounded text-xs text-gray-800 dark:text-gray-200 overflow-auto">
+                      {JSON.stringify(message.data.plan, null, 2)}
+                    </pre>
+                  </div>
+                )}
+
                 <p className={`text-xs text-gray-500 dark:text-gray-400 mt-1 ${message.type === 'user' ? 'text-right' : 'text-left'}`}>
                   {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </p>

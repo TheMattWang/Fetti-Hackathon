@@ -32,7 +32,7 @@ class LightweightAgent:
             self._agent_builder.print_database_info()
             
             logger.info("Setting up LLM and creating SQL agent...")
-            self._agent = self._agent_builder.setup_llm(temperature=0.5).create_sql_agent(max_iterations=3)
+            self._agent = self._agent_builder.setup_llm(temperature=0.1).create_sql_agent(max_iterations=3)
             
             self._initialized = True
             logger.info("Agent loaded successfully!")
